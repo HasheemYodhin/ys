@@ -1,29 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Clock, Calendar, UserCheck, History, MapPin } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AttendanceDashboard() {
+    const { user } = useAuth();
     const [attendanceHistory, setAttendanceHistory] = useState([]);
     const [status, setStatus] = useState('Checked Out');
     const [loading, setLoading] = useState(false);
-
-    // Mock Employee ID for Demo (In real app, get from Context/Auth)
-    // We need to fetch a real ID first to make this work, but for UI demo we can fail gracefully or prompt
     const [employeeId, setEmployeeId] = useState(null);
 
     useEffect(() => {
-        // Attempt to auto-select the first employee for demo purposes
         const fetchEmployee = async () => {
             try {
                 const res = await fetch('http://localhost:8000/employees/');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.length > 0) setEmployeeId(data[0]._id);
+                    if (data.length > 0) {
+                        // Try to find the employee that matches the logged in user
+                        const matched = data.find(emp =>
+                            `${emp.first_name} ${emp.last_name}`.toLowerCase() === user?.name?.toLowerCase()
+                        );
+                        setEmployeeId(matched ? matched._id : data[0]._id);
+                    }
                 }
             } catch (e) { console.error("No employees found check setup"); }
         };
         fetchEmployee();
         fetchHistory();
-    }, []);
+    }, [user]);
 
     const fetchHistory = async () => {
         try {

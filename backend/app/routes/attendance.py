@@ -18,13 +18,20 @@ async def check_in(request: Request, payload: AttendanceAction = Body(...)):
     if existing:
         raise HTTPException(status_code=400, detail="Already checked in for today")
 
-    # Fetch employee name (optional optimization)
+    # Fetch employee name robustly
     emp = await request.app.database["employees"].find_one({"_id": payload.employee_id})
+    if not emp:
+        from bson import ObjectId
+        try:
+            emp = await request.app.database["employees"].find_one({"_id": ObjectId(payload.employee_id)})
+        except:
+            pass
+
     if not emp:
          raise HTTPException(status_code=404, detail="Employee not found")
 
     new_record = {
-        "employee_id": payload.employee_id,
+        "employee_id": str(emp["_id"]),
         "employee_name": f"{emp['first_name']} {emp['last_name']}",
         "date": today,
         "check_in": datetime.utcnow(),
@@ -41,11 +48,22 @@ async def check_in(request: Request, payload: AttendanceAction = Body(...)):
 async def check_out(request: Request, payload: AttendanceAction = Body(...)):
     today = date.today().isoformat()
     
+    # Support both string and ObjectId for employee_id lookup
     record = await request.app.database["attendance"].find_one({
-        "employee_id": payload.employee_id,
+        "employee_id": str(payload.employee_id),
         "date": today
     })
     
+    if not record:
+        from bson import ObjectId
+        try:
+            record = await request.app.database["attendance"].find_one({
+                "employee_id": ObjectId(payload.employee_id),
+                "date": today
+            })
+        except:
+            pass
+
     if not record:
         raise HTTPException(status_code=400, detail="No check-in record found for today")
         

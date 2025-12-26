@@ -47,6 +47,8 @@ async def create_user(user: UserCreate, db=Depends(get_database)):
     # Insert
     new_user = await db["users"].insert_one(user_in_db.dict())
     created_user = await db["users"].find_one({"_id": new_user.inserted_id})
+    if created_user:
+        created_user["_id"] = str(created_user["_id"])
     return created_user
 
 @router.post("/token")
@@ -65,5 +67,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/users/me", response_model=UserResponse)
-async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    if "_id" in current_user:
+        current_user["_id"] = str(current_user["_id"])
     return current_user

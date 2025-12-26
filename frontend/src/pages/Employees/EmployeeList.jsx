@@ -1,142 +1,173 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, MoreHorizontal, User, Mail, Briefcase, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, User, Mail, Briefcase, Calendar, Trash2 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
 
 export default function EmployeeList() {
-    const [employees, setEmployees] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-    const fetchEmployees = async () => {
-        try {
-            const response = await fetch('http://localhost:8000/employees/');
-            if (response.ok) {
-                const data = await response.json();
-                setEmployees(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch employees", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/employees/');
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch employees", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchEmployees();
-    }, []);
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
-    const handleEmployeeAdded = (newEmployee) => {
-        setEmployees([...employees, newEmployee]);
-        setIsModalOpen(false);
-    };
+  const handleEmployeeAdded = (newEmployee) => {
+    setEmployees([...employees, newEmployee]);
+    setIsModalOpen(false);
+  };
 
-    const filteredEmployees = employees.filter(emp =>
-        emp.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to remove this employee? This action cannot be undone.")) {
+      return;
+    }
 
-    return (
-        <div className="page-container">
-            <div className="page-header-flex">
-                <div>
-                    <h1 className="page-title">Employees</h1>
-                    <p className="page-subtitle">Manage your team members and their details.</p>
-                </div>
-                <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-                    <Plus size={18} />
-                    Add Employee
-                </button>
-            </div>
+    try {
+      const response = await fetch(`http://localhost:8000/employees/${id}`, {
+        method: 'DELETE',
+      });
 
-            <div className="filter-bar card">
-                <div className="search-wrapper">
-                    <Search size={18} className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email, or role..."
-                        className="search-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="filter-actions">
-                    <button className="btn btn-outline">
-                        <Filter size={18} />
-                        <span>Filter</span>
-                    </button>
-                </div>
-            </div>
+      if (response.ok) {
+        setEmployees(employees.filter(emp => emp._id !== id));
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.detail || 'Failed to delete employee'}`);
+      }
+    } catch (error) {
+      console.error("Delete failed", error);
+      alert("Connection error: Could not reach the server.");
+    }
+  };
 
-            <div className="card table-card">
-                {loading ? (
-                    <div className="loading-state">Loading employees...</div>
-                ) : (
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Role</th>
-                                <th>Department</th>
-                                <th>Status</th>
-                                <th>Joined</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredEmployees.map((employee) => (
-                                <tr key={employee._id}>
-                                    <td>
-                                        <div className="user-cell">
-                                            <div className="avatar-circle">
-                                                {employee.first_name[0]}{employee.last_name[0]}
-                                            </div>
-                                            <div className="user-info">
-                                                <span className="user-name">{employee.first_name} {employee.last_name}</span>
-                                                <span className="user-email">{employee.email}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className="role-text">{employee.role}</span>
-                                    </td>
-                                    <td>
-                                        <span className="dept-badge">{employee.department}</span>
-                                    </td>
-                                    <td>
-                                        <span className={`status-badge status-${employee.status.toLowerCase().replace(' ', '-')}`}>
-                                            {employee.status}
-                                        </span>
-                                    </td>
-                                    <td>{employee.date_of_joining}</td>
-                                    <td>
-                                        <button className="action-btn">
-                                            <MoreHorizontal size={18} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredEmployees.length === 0 && (
-                                <tr>
-                                    <td colSpan="6" className="empty-state">
-                                        No employees found. Add one to get started.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+  const filteredEmployees = employees.filter(emp =>
+    emp.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-            {isModalOpen && (
-                <AddEmployeeModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSuccess={handleEmployeeAdded}
-                />
-            )}
+  return (
+    <div className="page-container">
+      <div className="page-header-flex">
+        <div>
+          <h1 className="page-title">Employees</h1>
+          <p className="page-subtitle">Manage your team members and their details.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} />
+          Add Employee
+        </button>
+      </div>
 
-            <style>{`
+      <div className="filter-bar card">
+        <div className="search-wrapper">
+          <Search size={18} className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search by name, email, or role..."
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="filter-actions">
+          <button className="btn btn-outline">
+            <Filter size={18} />
+            <span>Filter</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="card table-card">
+        {loading ? (
+          <div className="loading-state">Loading employees...</div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployees.map((employee) => (
+                <tr key={employee._id}>
+                  <td>
+                    <div className="user-cell">
+                      <div className="avatar-circle">
+                        {employee.first_name[0]}{employee.last_name[0]}
+                      </div>
+                      <div className="user-info">
+                        <span className="user-name">{employee.first_name} {employee.last_name}</span>
+                        <span className="user-email">{employee.email}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="role-text">{employee.role}</span>
+                  </td>
+                  <td>
+                    <span className="dept-badge">{employee.department}</span>
+                  </td>
+                  <td>
+                    <span className={`status-badge status-${employee.status.toLowerCase().replace(' ', '-')}`}>
+                      {employee.status}
+                    </span>
+                  </td>
+                  <td>{employee.date_of_joining}</td>
+                  <td>
+                    <div className="action-row">
+                      <button className="action-btn" title="More options">
+                        <MoreHorizontal size={18} />
+                      </button>
+                      <button
+                        className="action-btn btn-delete"
+                        onClick={() => handleDelete(employee._id)}
+                        title="Remove employee"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredEmployees.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="empty-state">
+                    No employees found. Add one to get started.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <AddEmployeeModal
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={handleEmployeeAdded}
+        />
+      )}
+
+      <style>{`
         .page-header-flex {
           display: flex;
           justify-content: space-between;
@@ -274,6 +305,17 @@ export default function EmployeeList() {
           background: var(--slate-100);
           color: var(--text-main);
         }
+
+        .btn-delete:hover {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .action-row {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+        }
         
         .loading-state, .empty-state {
           text-align: center;
@@ -281,6 +323,6 @@ export default function EmployeeList() {
           color: var(--text-muted);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }
