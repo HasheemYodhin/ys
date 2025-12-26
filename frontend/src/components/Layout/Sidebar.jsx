@@ -11,23 +11,25 @@ import {
   FileBox,
   BarChart3,
   CalendarDays,
-  ReceiptRussianRuble
+  ReceiptRussianRuble,
+  User
 } from 'lucide-react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['HR', 'Employee'] },
+  { label: 'My Profile', icon: User, path: '/profile', roles: ['Employee'] },
+  { label: 'Attendance', icon: CalendarClock, path: '/attendance', roles: ['HR', 'Employee'] },
   { label: 'Employees', icon: Users, path: '/employees', roles: ['HR'] },
   { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['HR', 'Employee'] },
-  { label: 'Leave', icon: CalendarDays, path: '/leave', roles: ['HR', 'Employee'] },
-  { label: 'Attendance', icon: CalendarClock, path: '/attendance', roles: ['HR', 'Employee'] },
-  { label: 'Expenses', icon: ReceiptRussianRuble, path: '/expenses', roles: ['HR', 'Employee'] },
-  { label: 'Recruitment', icon: Briefcase, path: '/recruitment', roles: ['HR', 'Employee'] },
-  { label: 'Documents', icon: FileBox, path: '/documents', roles: ['HR', 'Employee'] },
-  { label: 'Analytics', icon: BarChart3, path: '/analytics', roles: ['HR'] },
-  { label: 'Reports', icon: FileText, path: '/reports', roles: ['HR', 'Employee'] },
   { label: 'Organization', icon: Network, path: '/organization', roles: ['HR', 'Employee'] },
+  { label: 'Recruitment', icon: Briefcase, path: '/recruitment', roles: ['HR', 'Employee'] },
+  { label: 'Reports', icon: FileText, path: '/reports', roles: ['HR', 'Employee'] },
+  { label: 'Leave Management', icon: CalendarDays, path: '/leave', roles: ['HR', 'Employee'] },
+  { label: 'Expense Claims', icon: ReceiptRussianRuble, path: '/expenses', roles: ['HR', 'Employee'] },
+  { label: 'Documents', icon: FileBox, path: '/documents', roles: ['HR', 'Employee'] },
+  { label: 'View Analytics', icon: BarChart3, path: '/analytics', roles: ['HR'] },
 ];
 
 export default function Sidebar() {
@@ -39,7 +41,11 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  const filteredItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
+  // Show all items for HR, or a filtered list for others. 
+  // If no user/role, show all for development purposes.
+  const filteredItems = !user?.role || user?.role === 'HR'
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter(item => item.roles.includes(user.role));
 
   return (
     <aside className="sidebar glass">

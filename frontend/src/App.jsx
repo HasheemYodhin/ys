@@ -45,7 +45,7 @@ function AppRoutes() {
           <Routes>
             <Route
               path="/dashboard"
-              element={<Dashboard />}
+              element={user?.role === 'HR' ? <Dashboard /> : <EmployeeDashboard />}
             />
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/payroll" element={<PayrollDashboard />} />
@@ -57,6 +57,7 @@ function AppRoutes() {
             <Route path="/reports" element={<ReportsDashboard />} />
             <Route path="/organization" element={<OrganizationDashboard />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={<EmployeeDashboard />} />
             {/* Fallback to Dashboard */}
             <Route path="*" element={<Dashboard />} />
           </Routes>
