@@ -14,7 +14,8 @@ export default function Signup() {
     email: '',
     company: '',
     phone: '',
-    password: ''
+    password: '',
+    role: 'Employee'
   });
 
   const handleSubmit = async (e) => {
@@ -27,7 +28,8 @@ export default function Signup() {
         email: formData.email,
         password: formData.password,
         company: formData.company,
-        phone: formData.phone
+        phone: formData.phone,
+        role: formData.role
       });
       navigate('/dashboard');
     } catch (err) {
@@ -145,6 +147,23 @@ export default function Signup() {
                       onChange={handleChange}
                       required
                     />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>I am an</label>
+                  <div className="input-wrapper">
+                    <User size={18} className="input-icon" />
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className="select-premium"
+                      required
+                    >
+                      <option value="Employee">Employee</option>
+                      <option value="Employer">Employer (HR/Admin)</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -388,11 +407,29 @@ export default function Signup() {
           background: #fcfcfc;
         }
 
-        .input-wrapper input:focus {
+        .input-wrapper input:focus, .select-premium:focus {
           border-color: var(--primary-500);
           outline: none;
           background: white;
           box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .select-premium {
+          width: 100%;
+          padding: 14px 16px 14px 48px;
+          border-radius: 14px;
+          border: 1px solid var(--slate-200);
+          font-size: 1rem;
+          transition: all 0.2s;
+          background: #fcfcfc;
+          appearance: none;
+          cursor: pointer;
+          color: var(--slate-700);
+          font-weight: 500;
+        }
+
+        .select-premium:focus {
+          background: white;
         }
 
         .btn-premium {

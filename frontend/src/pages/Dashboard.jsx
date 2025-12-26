@@ -9,7 +9,7 @@ import {
   Briefcase,
   Zap
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AddEmployeeModal from './Employees/AddEmployeeModal';
 
@@ -107,21 +107,39 @@ export default function Dashboard() {
         <div className="main-section">
           <div className="card mb-6">
             <div className="card-header justify-between">
-              <h2>Attendance Trend</h2>
+              <h2>Organization Attendance Overview</h2>
               <div className="card-actions">
                 <select className="mini-select">
-                  <option>Last 30 days</option>
-                  <option>Last 7 days</option>
+                  <option>Today</option>
+                  <option>Yesterday</option>
                 </select>
               </div>
             </div>
-            <div className="placeholder-chart">
-              <div className="fake-waves">
-                {[...Array(20)].map((_, i) => (
-                  <div key={i} className="wave-bar" style={{ height: `${Math.random() * 60 + 20}%` }}></div>
+            <div className="attendance-grid mt-4">
+              <div className="attendance-box">
+                <span className="count">1,180</span>
+                <span className="label">Present</span>
+              </div>
+              <div className="attendance-box">
+                <span className="count">42</span>
+                <span className="label">Absent</span>
+              </div>
+              <div className="attendance-box">
+                <span className="count">26</span>
+                <span className="label">On Leave</span>
+              </div>
+            </div>
+            <div className="fake-chart-container mt-6">
+              <div className="flex justify-between items-end h-32 gap-2">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="flex flex-col items-center flex-1">
+                    <div className="w-full bg-slate-100 rounded-t-lg relative overflow-hidden" style={{ height: `${Math.random() * 80 + 20}%` }}>
+                      <div className="absolute bottom-0 w-full bg-primary-500/20" style={{ height: '70%' }}></div>
+                    </div>
+                    <span className="text-[10px] mt-2 text-slate-400 font-bold">{['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i]}</span>
+                  </div>
                 ))}
               </div>
-              <p>Activity peaking at 10 AM daily</p>
             </div>
           </div>
 
@@ -331,6 +349,11 @@ export default function Dashboard() {
                 .mini-select { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--slate-200); font-size: 0.85rem; font-weight: 600; color: var(--slate-600); cursor: pointer; }
                 .text-btn { font-size: 0.9rem; font-weight: 700; color: var(--primary-600); }
                 .text-btn:hover { color: var(--primary-700); }
+
+                .attendance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; }
+                .attendance-box { padding: 16px; background: var(--slate-50); border-radius: 16px; display: flex; flex-direction: column; gap: 4px; }
+                .attendance-box .count { font-size: 1.25rem; font-weight: 800; color: var(--slate-900); }
+                .attendance-box .label { font-size: 0.75rem; color: var(--slate-400); font-weight: 700; text-transform: uppercase; }
 
                 .leave-balance-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
                 .leave-stat { display: flex; flex-direction: column; gap: 4px; }

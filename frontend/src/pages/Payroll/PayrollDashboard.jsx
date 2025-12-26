@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Banknote, CreditCard, Calendar, Download, Play } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PayrollDashboard() {
+    const { user } = useAuth();
     const [payrollHistory, setPayrollHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [runningPayroll, setRunningPayroll] = useState(false);
@@ -54,50 +56,58 @@ export default function PayrollDashboard() {
 
     return (
         <div className="page-container">
-            <div className="page-header-flex">
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="page-title">Payroll & Compliance</h1>
-                    <p className="page-subtitle">Manage salaries, taxes, and payslips.</p>
+                    <p className="page-subtitle">
+                        {user?.role === 'Employer'
+                            ? "Manage salaries, taxes, and payslips."
+                            : "View your recent pay slips and earnings."}
+                    </p>
                 </div>
-                <button
-                    className="btn btn-primary"
-                    onClick={handleRunPayroll}
-                    disabled={runningPayroll}
-                >
-                    <Play size={18} />
-                    {runningPayroll ? 'Processing...' : 'Run This Month Payroll'}
-                </button>
+                {user?.role === 'Employer' && (
+                    <button
+                        className="btn-primary flex items-center gap-2"
+                        onClick={handleRunPayroll}
+                        disabled={runningPayroll}
+                    >
+                        <Play size={18} />
+                        {runningPayroll ? 'Processing...' : 'Run This Month Payroll'}
+                    </button>
+                )}
             </div>
 
-            <div className="stats-grid">
-                <div className="card stat-card">
-                    <div className="stat-icon bg-green-100 text-green-600">
-                        <Banknote size={24} />
+            {user?.role === 'Employer' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="card stat-card p-6 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+                            <Banknote size={24} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Total Disbursed (YTD)</p>
+                            <h3 className="text-2xl font-bold text-slate-900">${totalPayrollCost.toLocaleString()}</h3>
+                        </div>
                     </div>
-                    <div className="stat-info">
-                        <span className="stat-label">Total Disbursed (YTD)</span>
-                        <span className="stat-value">${totalPayrollCost.toLocaleString()}</span>
+                    <div className="card stat-card p-6 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center">
+                            <Calendar size={24} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Next Pay Date</p>
+                            <h3 className="text-2xl font-bold text-slate-900">Dec 31, 2025</h3>
+                        </div>
+                    </div>
+                    <div className="card stat-card p-6 flex items-center gap-4 md:col-span-2 lg:col-span-1">
+                        <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <CreditCard size={24} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">Pending Reviews</p>
+                            <h3 className="text-2xl font-bold text-slate-900">0</h3>
+                        </div>
                     </div>
                 </div>
-                <div className="card stat-card">
-                    <div className="stat-icon bg-blue-100 text-blue-600">
-                        <Calendar size={24} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-label">Next Pay Date</span>
-                        <span className="stat-value">Dec 31, 2025</span>
-                    </div>
-                </div>
-                <div className="card stat-card">
-                    <div className="stat-icon bg-purple-100 text-purple-600">
-                        <CreditCard size={24} />
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-label">Pending Reviews</span>
-                        <span className="stat-value">0</span>
-                    </div>
-                </div>
-            </div>
+            )}
 
             <div className="card table-card mt-6">
                 <div className="card-header p-4 border-b border-gray-100">
@@ -126,24 +136,29 @@ export default function PayrollDashboard() {
                                     <td colSpan="8" className="empty-state">No payroll records found. Run payroll to generate data.</td>
                                 </tr>
                             ) : (
-                                payrollHistory.map((record) => (
-                                    <tr key={record._id}>
-                                        <td className="font-medium text-gray-900">{record.employee_name}</td>
-                                        <td>{record.month} {record.year}</td>
-                                        <td>${record.basic_salary.toLocaleString()}</td>
-                                        <td>${record.total_allowances.toLocaleString()}</td>
-                                        <td className="text-red-500">-${record.total_deductions.toLocaleString()}</td>
-                                        <td className="font-bold text-green-600">${record.net_salary.toLocaleString()}</td>
-                                        <td>
-                                            <span className="status-badge status-active">{record.status}</span>
-                                        </td>
-                                        <td>
-                                            <button className="action-btn text-blue-600">
-                                                <Download size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                payrollHistory
+                                    .filter(record =>
+                                        user?.role === 'Employer' ||
+                                        record.employee_name.toLowerCase() === user?.name?.toLowerCase()
+                                    )
+                                    .map((record) => (
+                                        <tr key={record._id}>
+                                            <td className="font-medium text-gray-900">{record.employee_name}</td>
+                                            <td>{record.month} {record.year}</td>
+                                            <td>${record.basic_salary.toLocaleString()}</td>
+                                            <td>${record.total_allowances.toLocaleString()}</td>
+                                            <td className="text-red-500">-${record.total_deductions.toLocaleString()}</td>
+                                            <td className="font-bold text-green-600">${record.net_salary.toLocaleString()}</td>
+                                            <td>
+                                                <span className="status-badge status-active">{record.status}</span>
+                                            </td>
+                                            <td>
+                                                <button className="action-btn text-blue-600" title="Download Payslip">
+                                                    <Download size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
                             )}
                         </tbody>
                     </table>

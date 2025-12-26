@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from ..models.user import UserCreate, UserLogin, UserResponse, UserInDB
+from ..models.user import UserCreate, UserLogin, UserResponse, UserInDB, UserUpdate
 from ..auth_utils import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from ..database import get_database
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -40,7 +40,7 @@ async def create_user(user: UserCreate, db=Depends(get_database)):
     
     hashed_password = get_password_hash(user.password)
     user_in_db = UserInDB(
-        **user.dict(),
+        **user.dict(exclude={"password"}),
         hashed_password=hashed_password
     )
     
@@ -71,3 +71,23 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
     if "_id" in current_user:
         current_user["_id"] = str(current_user["_id"])
     return current_user
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserUpdate,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    # Filter out None values to only update provided fields
+    update_data = {k: v for k, v in profile_data.dict().items() if v is not None}
+    
+    if update_data:
+        await db["users"].update_one(
+            {"_id": current_user["_id"]},
+            {"$set": update_data}
+        )
+    
+    updated_user = await db["users"].find_one({"_id": current_user["_id"]})
+    if updated_user:
+        updated_user["_id"] = str(updated_user["_id"])
+    return updated_user

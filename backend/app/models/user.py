@@ -22,9 +22,29 @@ class UserBase(BaseModel):
     full_name: str
     company: Optional[str] = None
     phone: Optional[str] = None
+    role: str = Field(default="Employee", description="Employer or Employee")
+    profile_photo: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    joining_date: Optional[str] = None
+    address: Optional[str] = None
+    dob: Optional[str] = None
+    bio: Optional[str] = None
+    emergency_contact: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
-    
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    profile_photo: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    address: Optional[str] = None
+    dob: Optional[str] = None
+    bio: Optional[str] = None
+    emergency_contact: Optional[str] = None
+
 class UserCreate(UserBase):
     password: str
 

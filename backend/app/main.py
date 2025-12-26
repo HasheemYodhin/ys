@@ -5,7 +5,7 @@ import os
 
 # Import Routes
 from .routes import auth
-from app.routes import employees, payroll, attendance, recruitment, finance, cms
+from app.routes import employees, payroll, attendance, recruitment, finance, cms, leaves
 
 app = FastAPI(title="YS HR Management System", version="1.0.0")
 
@@ -53,6 +53,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(employees.router, prefix="/employees", tags=["employees"])
 app.include_router(payroll.router, prefix="/payroll", tags=["payroll"])
 app.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
+app.include_router(leaves.router, prefix="/leaves", tags=["leaves"])
 app.include_router(recruitment.router, prefix="/recruitment", tags=["recruitment"])
 app.include_router(finance.router, prefix="/finance", tags=["finance"])
 app.include_router(cms.router, prefix="/cms", tags=["cms"])

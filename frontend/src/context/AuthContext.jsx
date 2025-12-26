@@ -15,12 +15,10 @@ export const AuthProvider = ({ children }) => {
             });
             if (response.ok) {
                 const userData = await response.json();
-                const userWithRole = {
+                setUser({
                     ...userData,
                     name: userData.full_name || userData.name,
-                    role: 'HR' // Force Admin/HR view for development
-                };
-                setUser(userWithRole);
+                });
             } else {
                 logout();
             }
@@ -30,6 +28,30 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const updateProfile = async (profileData) => {
+        const token = localStorage.getItem('ys_token');
+        const response = await fetch('http://localhost:8000/auth/profile', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(profileData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to update profile');
+        }
+
+        const updatedUser = await response.json();
+        setUser({
+            ...updatedUser,
+            name: updatedUser.full_name || updatedUser.name,
+        });
+        return updatedUser;
     };
 
     useEffect(() => {
@@ -87,7 +109,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, signup, logout, updateProfile, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

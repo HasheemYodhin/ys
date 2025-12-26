@@ -96,6 +96,39 @@ export default function EmployeeDashboard() {
                         </div>
                     </div>
 
+                    <div className="card mb-6">
+                        <div className="card-header justify-between">
+                            <h2>Recent Pay Slips</h2>
+                            <button className="text-btn">View All</button>
+                        </div>
+                        <div className="table-wrapper mt-4">
+                            <table className="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Month</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>December 2025</td>
+                                        <td>Dec 31, 2025</td>
+                                        <td className="font-bold">$4,500.00</td>
+                                        <td><button className="text-primary-600 font-bold text-xs">Download</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>November 2025</td>
+                                        <td>Nov 30, 2025</td>
+                                        <td className="font-bold">$4,500.00</td>
+                                        <td><button className="text-primary-600 font-bold text-xs">Download</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div className="card">
                         <div className="card-header justify-between">
                             <h2>Internal Job Openings</h2>
@@ -107,7 +140,7 @@ export default function EmployeeDashboard() {
                                     <h4 className="font-bold">Lead UI Designer</h4>
                                     <p className="text-xs text-muted">Creative Team • Remote</p>
                                 </div>
-                                <button className="btn-secondary py-1 px-4 text-xs">Apply</button>
+                                <button className="btn-secondary py-1 px-4 text-xs font-bold">Apply</button>
                             </div>
                         </div>
                     </div>
@@ -165,9 +198,12 @@ export default function EmployeeDashboard() {
                 .q-link:hover { background: white; border-color: var(--primary-200); transform: translateX(5px); color: var(--primary-600); }
                 .q-link span { font-size: 0.9rem; font-weight: 600; }
                 
+                .mini-table { width: 100%; border-collapse: collapse; }
+                .mini-table th { text-align: left; padding: 12px; font-size: 0.75rem; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); }
+                .mini-table td { padding: 12px; font-size: 0.85rem; color: var(--slate-600); border-bottom: 1px solid var(--slate-100); }
+                
                 .manager-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--slate-900); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; }
                 .content-grid-split { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
-                @media (max-width: 1024px) { .content-grid-split { grid-template-columns: 1fr; } }
             `}</style>
         </div>
     );

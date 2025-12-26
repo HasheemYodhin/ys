@@ -1,10 +1,18 @@
 import Sidebar from './Sidebar';
-import { Bell, Search, UserCircle } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const Header = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="header">
@@ -18,15 +26,53 @@ const Header = () => {
           <Bell size={20} />
           <span className="badge">3</span>
         </button>
-        <Link to="/settings" className="user-profile">
-          <div className="user-info">
-            <span className="user-name">
-              {user?.full_name || user?.name || (user?.email ? user.email.split('@')[0] : 'User')}
-            </span>
-            <span className="user-role">{user?.role === 'HR' ? 'HR Admin' : 'Employee Account'}</span>
+
+        <div className="profile-container">
+          <div
+            className="user-profile-trigger"
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            <div className="user-info">
+              <span className="user-name">
+                {user?.name || "User"}
+              </span>
+              <span className="user-role">
+                {user?.role === 'Employer' ? 'Employer Account' : 'Employee Account'}
+              </span>
+            </div>
+            <div className="avatar-wrapper">
+              {user?.profile_photo ? (
+                <img src={user.profile_photo} alt="Profile" className="user-avatar-img" />
+              ) : (
+                <UserCircle size={36} strokeWidth={1.5} className="user-avatar" />
+              )}
+              <ChevronDown size={14} className={`dropdown-arrow ${showDropdown ? 'open' : ''}`} />
+            </div>
           </div>
-          <UserCircle size={32} strokeWidth={1.5} className="user-avatar" />
-        </Link>
+
+          {showDropdown && (
+            <div className="profile-dropdown glass">
+              <div className="dropdown-header">
+                <p className="dropdown-user-name">{user?.name}</p>
+                <p className="dropdown-user-email">{user?.email}</p>
+              </div>
+              <div className="dropdown-divider"></div>
+              <Link to="/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                <User size={16} />
+                <span>My Profile</span>
+              </Link>
+              <Link to="/settings" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                <Settings size={16} />
+                <span>Settings</span>
+              </Link>
+              <div className="dropdown-divider"></div>
+              <button className="dropdown-item logout-item" onClick={handleLogout}>
+                <LogOut size={16} />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
@@ -119,18 +165,22 @@ const Header = () => {
           border: 2px solid white;
         }
 
-        .user-profile {
+        .profile-container {
+          position: relative;
+        }
+
+        .user-profile-trigger {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding-left: 24px;
-          border-left: 1px solid var(--border-color);
-          text-decoration: none;
-          transition: opacity 0.2s;
+          padding: 6px 12px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background 0.2s;
         }
 
-        .user-profile:hover {
-          opacity: 0.8;
+        .user-profile-trigger:hover {
+          background: var(--slate-50);
         }
 
         .user-info {
@@ -142,6 +192,7 @@ const Header = () => {
           font-size: 0.9rem;
           font-weight: 600;
           color: var(--text-main);
+          line-height: 1.2;
         }
 
         .user-role {
@@ -150,8 +201,103 @@ const Header = () => {
           color: var(--text-muted);
         }
 
+        .avatar-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
         .user-avatar {
           color: var(--slate-400);
+        }
+
+        .user-avatar-img {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dropdown-arrow {
+          color: var(--slate-400);
+          transition: transform 0.2s;
+        }
+
+        .dropdown-arrow.open {
+          transform: rotate(180deg);
+        }
+
+        .profile-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          width: 220px;
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+          border: 1px solid var(--border-color);
+          overflow: hidden;
+          padding: 8px;
+          animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-header {
+          padding: 12px 16px;
+        }
+
+        .dropdown-user-name {
+          font-weight: 700;
+          color: var(--slate-900);
+          font-size: 0.95rem;
+        }
+
+        .dropdown-user-email {
+          font-size: 0.8rem;
+          color: var(--slate-500);
+        }
+
+        .dropdown-divider {
+          height: 1px;
+          background: var(--border-color);
+          margin: 8px 0;
+        }
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          color: var(--slate-600);
+          text-decoration: none;
+          font-size: 0.9rem;
+          font-weight: 500;
+          border-radius: 8px;
+          transition: all 0.2s;
+        }
+
+        .dropdown-item:hover {
+          background: var(--slate-50);
+          color: var(--primary-600);
+        }
+
+        .logout-item {
+          width: 100%;
+          border: none;
+          background: none;
+          cursor: pointer;
+          color: #ef4444;
+        }
+
+        .logout-item:hover {
+          background: #fff1f2;
+          color: #be123c;
         }
       `}</style>
     </header>

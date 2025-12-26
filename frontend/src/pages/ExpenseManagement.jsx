@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CreditCard, Plus, Receipt, CheckCircle, Clock, FileText } from 'lucide-react';
+import { CreditCard, Plus, Receipt, CheckCircle, Clock, FileText, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const EXPENSES = [
     { id: 1, category: 'Travel', amount: 450.00, date: '2025-12-20', description: 'Uber for client meeting', status: 'Approved' },
@@ -8,16 +8,23 @@ const EXPENSES = [
 ];
 
 export default function ExpenseManagement() {
+    const { user } = useAuth();
+    const isEmployer = user?.role === 'Employer';
+
     return (
         <div className="expense-page">
             <div className="page-header flex justify-between items-center mb-8">
                 <div>
                     <h1 className="page-title">Expense Management</h1>
-                    <p className="page-subtitle">Track and claim your business expenses</p>
+                    <p className="page-subtitle">
+                        {isEmployer ? "Review and approve business expense claims" : "Track and claim your business expenses"}
+                    </p>
                 </div>
-                <button className="btn-premium">
-                    <Plus size={18} /> Submit New Claim
-                </button>
+                {!isEmployer && (
+                    <button className="btn-premium">
+                        <Plus size={18} /> Submit New Claim
+                    </button>
+                )}
             </div>
 
             <div className="stats-grid mb-8">
@@ -49,17 +56,19 @@ export default function ExpenseManagement() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 border-b">
+                                {isEmployer && <th className="p-4 font-semibold text-slate-600">Employee</th>}
                                 <th className="p-4 font-semibold text-slate-600">Category</th>
                                 <th className="p-4 font-semibold text-slate-600">Amount</th>
                                 <th className="p-4 font-semibold text-slate-600">Date</th>
                                 <th className="p-4 font-semibold text-slate-600">Description</th>
                                 <th className="p-4 font-semibold text-slate-600">Status</th>
-                                <th className="p-4 font-semibold text-slate-600">Receipt</th>
+                                <th className="p-4 font-semibold text-slate-600">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {EXPENSES.map((ex) => (
                                 <tr key={ex.id} className="border-b hover:bg-slate-50 transition-colors">
+                                    {isEmployer && <td className="p-4 font-bold">{user?.name}</td>}
                                     <td className="p-4 text-primary-600 font-medium">#{ex.category}</td>
                                     <td className="p-4 font-mono font-bold">${ex.amount.toFixed(2)}</td>
                                     <td className="p-4 text-muted">{ex.date}</td>
@@ -71,9 +80,17 @@ export default function ExpenseManagement() {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <button className="text-primary-600 hover:text-primary-800 flex items-center gap-1 font-medium transition-colors">
-                                            <FileText size={16} /> View
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button className="text-primary-600 hover:text-primary-800" title="View Receipt">
+                                                <FileText size={18} />
+                                            </button>
+                                            {isEmployer && (
+                                                <>
+                                                    <button className="text-green-600 hover:text-green-800" title="Approve"><ThumbsUp size={18} /></button>
+                                                    <button className="text-red-600 hover:text-red-800" title="Reject"><ThumbsDown size={18} /></button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

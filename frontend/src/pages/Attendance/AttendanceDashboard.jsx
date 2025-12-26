@@ -69,7 +69,7 @@ export default function AttendanceDashboard() {
 
     return (
         <div className="page-container">
-            <div className="page-header-flex">
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="page-title">Attendance & Tracking</h1>
                     <p className="page-subtitle">Manage daily work hours and logs.</p>
@@ -86,11 +86,11 @@ export default function AttendanceDashboard() {
                 {/* Clock In/Out Hero Card */}
                 <div className="card clock-card lg:col-span-1">
                     <div className="clock-header">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Time</span>
-                        <h2 className="text-4xl font-extrabold text-gray-800 my-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Current Time</span>
+                        <h2 className="text-3xl font-bold text-slate-800 my-2">
                             {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </h2>
-                        <span className="text-sm text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full">
+                        <span className="text-sm text-primary-600 font-semibold bg-primary-50 px-3 py-1 rounded-full">
                             {new Date().toDateString()}
                         </span>
                     </div>
@@ -116,7 +116,7 @@ export default function AttendanceDashboard() {
                             </button>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Location: Office (IP: 192.168.1.1)
                     </div>
@@ -124,31 +124,31 @@ export default function AttendanceDashboard() {
 
                 {/* Stats Cards */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="card p-6 flex items-center gap-4 border border-gray-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="card p-6 flex items-center gap-4 border border-slate-100 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center">
                                 <UserCheck size={24} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Days Present</p>
-                                <h3 className="text-2xl font-bold text-gray-900">24</h3>
+                                <p className="text-sm font-medium text-slate-500">Days Present</p>
+                                <h3 className="text-2xl font-bold text-slate-900">24</h3>
                                 <p className="text-xs text-green-600 font-medium">+2 from last month</p>
                             </div>
                         </div>
-                        <div className="card p-6 flex items-center gap-4 border border-gray-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                        <div className="card p-6 flex items-center gap-4 border border-slate-100 shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
                                 <Clock size={24} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Avg. Work Hours</p>
-                                <h3 className="text-2xl font-bold text-gray-900">8.5 hrs</h3>
+                                <p className="text-sm font-medium text-slate-500">Avg. Work Hours</p>
+                                <h3 className="text-2xl font-bold text-slate-900">8.5 hrs</h3>
                             </div>
                         </div>
                     </div>
 
-                    <div className="card p-6 flex-1 flex flex-col justify-center items-center border border-gray-100 shadow-sm bg-gray-50/50">
-                        <h4 className="font-semibold text-gray-700 mb-2 w-full text-left">Weekly Insight</h4>
-                        <div className="text-gray-400 text-sm italic">
+                    <div className="card p-6 flex-1 flex flex-col justify-center items-center border border-slate-100 shadow-sm bg-slate-50/50">
+                        <h4 className="font-semibold text-slate-700 mb-2 w-full text-left">Weekly Insight</h4>
+                        <div className="text-slate-400 text-sm italic">
                             Activity Graph Placeholder (Chart.js / Recharts)
                         </div>
                     </div>
@@ -171,20 +171,25 @@ export default function AttendanceDashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        {attendanceHistory.map(record => (
-                            <tr key={record._id}>
-                                <td className="font-medium">{record.employee_name}</td>
-                                <td>{record.date}</td>
-                                <td>{record.check_in ? new Date(record.check_in).toLocaleTimeString() : '-'}</td>
-                                <td>{record.check_out ? new Date(record.check_out).toLocaleTimeString() : '-'}</td>
-                                <td className="font-mono">{record.work_hours} h</td>
-                                <td>
-                                    <span className="status-badge status-active">{record.status}</span>
-                                </td>
-                            </tr>
-                        ))}
-                        {attendanceHistory.length === 0 && (
-                            <tr><td colSpan="6" className="text-center p-8 text-gray-400">No records found today</td></tr>
+                        {attendanceHistory
+                            .filter(record =>
+                                user?.role === 'Employer' ||
+                                record.employee_name.toLowerCase() === user?.name?.toLowerCase()
+                            )
+                            .map(record => (
+                                <tr key={record._id}>
+                                    <td className="font-medium">{record.employee_name}</td>
+                                    <td>{record.date}</td>
+                                    <td>{record.check_in ? new Date(record.check_in).toLocaleTimeString() : '-'}</td>
+                                    <td>{record.check_out ? new Date(record.check_out).toLocaleTimeString() : '-'}</td>
+                                    <td className="font-mono">{record.work_hours} h</td>
+                                    <td>
+                                        <span className="status-badge status-active">{record.status}</span>
+                                    </td>
+                                </tr>
+                            ))}
+                        {(user?.role === 'Employer' ? attendanceHistory.length === 0 : attendanceHistory.filter(r => r.employee_name.toLowerCase() === user?.name?.toLowerCase()).length === 0) && (
+                            <tr><td colSpan="6" className="text-center p-8 text-gray-400">No records found</td></tr>
                         )}
                     </tbody>
                 </table>

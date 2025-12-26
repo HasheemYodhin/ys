@@ -22,6 +22,7 @@ import LegalPage from './pages/LegalPage';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import EmployeeDashboard from './pages/Employee/EmployeeDashboard';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ function AppRoutes() {
           <Routes>
             <Route
               path="/dashboard"
-              element={user?.role === 'HR' ? <Dashboard /> : <EmployeeDashboard />}
+              element={user?.role === 'Employer' ? <Dashboard /> : <EmployeeDashboard />}
             />
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/payroll" element={<PayrollDashboard />} />
@@ -57,7 +58,7 @@ function AppRoutes() {
             <Route path="/reports" element={<ReportsDashboard />} />
             <Route path="/organization" element={<OrganizationDashboard />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<EmployeeDashboard />} />
+            <Route path="/profile" element={<ProfilePage />} />
             {/* Fallback to Dashboard */}
             <Route path="*" element={<Dashboard />} />
           </Routes>

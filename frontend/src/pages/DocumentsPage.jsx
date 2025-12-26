@@ -9,26 +9,54 @@ const DOCUMENTS = [
 ];
 
 export default function DocumentsPage() {
+    const fileInputRef = useState(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleUploadClick = () => {
+        document.getElementById('file-upload').click();
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setUploading(true);
+            setTimeout(() => {
+                alert(`File "${file.name}" uploaded successfully!`);
+                setUploading(false);
+            }, 1500);
+        }
+    };
+
     return (
         <div className="documents-page">
-            <div className="page-header flex justify-between items-center mb-8">
+            <input
+                type="file"
+                id="file-upload"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="page-title">Document Repository</h1>
                     <p className="page-subtitle">Access and manage organization documents</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="btn-secondary flex items-center gap-2">
+                    <button className="btn-outline">
                         <Filter size={18} /> Filter
                     </button>
-                    <button className="btn-premium flex items-center gap-2">
-                        <HardDrive size={18} /> Upload New
+                    <button
+                        className="btn-premium"
+                        onClick={handleUploadClick}
+                        disabled={uploading}
+                    >
+                        <HardDrive size={18} /> {uploading ? 'Uploading...' : 'Upload New'}
                     </button>
                 </div>
             </div>
 
             <div className="card mb-8 p-4 flex items-center gap-4">
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
                         placeholder="Search documents by name or category..."
@@ -46,13 +74,13 @@ export default function DocumentsPage() {
                             </div>
                         </div>
                         <h4 className="font-bold text-slate-900">{cat}</h4>
-                        <p className="text-sm text-muted">{i === 0 ? '24' : i * 4 + 2} documents</p>
+                        <p className="text-sm text-slate-500">{i === 0 ? '24' : i * 4 + 2} documents</p>
                     </div>
                 ))}
             </div>
 
             <div className="card overflow-hidden">
-                <div className="table-responsive">
+                <div className="table-container">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 border-b">
@@ -77,8 +105,8 @@ export default function DocumentsPage() {
                                             {doc.category}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-muted">{doc.size}</td>
-                                    <td className="p-4 text-muted">{doc.date}</td>
+                                    <td className="p-4 text-slate-500">{doc.size}</td>
+                                    <td className="p-4 text-slate-500">{doc.date}</td>
                                     <td className="p-4">
                                         <div className="flex justify-end gap-2">
                                             <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors">

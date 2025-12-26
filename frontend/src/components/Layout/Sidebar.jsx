@@ -18,18 +18,18 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['HR', 'Employee'] },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['Employer', 'Employee'] },
   { label: 'My Profile', icon: User, path: '/profile', roles: ['Employee'] },
-  { label: 'Attendance', icon: CalendarClock, path: '/attendance', roles: ['HR', 'Employee'] },
-  { label: 'Employees', icon: Users, path: '/employees', roles: ['HR'] },
-  { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['HR', 'Employee'] },
-  { label: 'Organization', icon: Network, path: '/organization', roles: ['HR', 'Employee'] },
-  { label: 'Recruitment', icon: Briefcase, path: '/recruitment', roles: ['HR', 'Employee'] },
-  { label: 'Reports', icon: FileText, path: '/reports', roles: ['HR', 'Employee'] },
-  { label: 'Leave Management', icon: CalendarDays, path: '/leave', roles: ['HR', 'Employee'] },
-  { label: 'Expense Claims', icon: ReceiptRussianRuble, path: '/expenses', roles: ['HR', 'Employee'] },
-  { label: 'Documents', icon: FileBox, path: '/documents', roles: ['HR', 'Employee'] },
-  { label: 'View Analytics', icon: BarChart3, path: '/analytics', roles: ['HR'] },
+  { label: 'Attendance', icon: CalendarClock, path: '/attendance', roles: ['Employer', 'Employee'] },
+  { label: 'Employees', icon: Users, path: '/employees', roles: ['Employer'] },
+  { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['Employer', 'Employee'] },
+  { label: 'Organization', icon: Network, path: '/organization', roles: ['Employer'] },
+  { label: 'Recruitment', icon: Briefcase, path: '/recruitment', roles: ['Employer'] },
+  { label: 'Reports', icon: FileText, path: '/reports', roles: ['Employer'] },
+  { label: 'Leave Management', icon: CalendarDays, path: '/leave', roles: ['Employer', 'Employee'] },
+  { label: 'Expense Claims', icon: ReceiptRussianRuble, path: '/expenses', roles: ['Employer', 'Employee'] },
+  { label: 'Documents', icon: FileBox, path: '/documents', roles: ['Employer', 'Employee'] },
+  { label: 'View Analytics', icon: BarChart3, path: '/analytics', roles: ['Employer'] },
 ];
 
 export default function Sidebar() {
@@ -41,11 +41,10 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  // Show all items for HR, or a filtered list for others. 
-  // If no user/role, show all for development purposes.
-  const filteredItems = !user?.role || user?.role === 'HR'
-    ? NAV_ITEMS
-    : NAV_ITEMS.filter(item => item.roles.includes(user.role));
+  // Filter items based on user role
+  const filteredItems = NAV_ITEMS.filter(item =>
+    !user?.role || item.roles.includes(user.role)
+  );
 
   return (
     <aside className="sidebar glass">
@@ -74,10 +73,6 @@ export default function Sidebar() {
           <Settings size={20} />
           <span>Settings</span>
         </NavLink>
-        <button className="nav-item logout-btn" onClick={handleLogout}>
-          <LogOut size={20} />
-          <span>Logout</span>
-        </button>
       </div>
 
       <style>{`
