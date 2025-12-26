@@ -32,9 +32,13 @@ DB_NAME = "ys_hr_db"
 
 @app.on_event("startup")
 async def startup_db_client():
-    app.mongodb_client = AsyncIOMotorClient(MONGO_URL)
+    app.mongodb_client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000)
     app.database = app.mongodb_client[DB_NAME]
-    print(f"Connected to MongoDB at {MONGO_URL}")
+    try:
+        await app.database.command("ping")
+        print(f"Successfully connected to MongoDB at {MONGO_URL}")
+    except Exception as e:
+        print(f"CRITICAL: Could not connect to MongoDB: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

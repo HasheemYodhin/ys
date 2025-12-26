@@ -23,7 +23,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
         setSubmitting(true);
 
         try {
-            const response = await fetch('http://localhost:8000/employees/', {
+            const response = await fetch('http://127.0.0.1:8000/employees/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -38,10 +38,12 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
                 const newEmployee = await response.json();
                 onSuccess(newEmployee);
             } else {
-                alert("Failed to create employee");
+                const errorData = await response.json();
+                alert(`Failed to create employee: ${errorData.detail || errorData.message || response.statusText}`);
             }
         } catch (error) {
             console.error("Error creating employee", error);
+            alert("Connection error: Could not reach the server.");
         } finally {
             setSubmitting(false);
         }

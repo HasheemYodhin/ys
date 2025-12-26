@@ -9,7 +9,9 @@ import {
   Briefcase,
   Zap
 } from 'lucide-react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import AddEmployeeModal from './Employees/AddEmployeeModal';
 
 const StatCard = ({ title, value, change, trend, icon: Icon, colorClass }) => (
   <div className="card stat-card">
@@ -40,7 +42,14 @@ const QuickAction = ({ icon: Icon, label, color }) => (
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const firstName = user?.name?.split(' ')[0] || 'User';
+
+  const handleEmployeeAdded = (newEmployee) => {
+    console.log('Employee added:', newEmployee);
+    setIsModalOpen(false);
+    // In a real app, you might want to refresh stats here
+  };
 
   return (
     <div className="dashboard">
@@ -53,7 +62,7 @@ export default function Dashboard() {
           <button className="btn-secondary flex items-center gap-2">
             <Filter size={18} /> Filter
           </button>
-          <button className="btn-premium">
+          <button className="btn-premium" onClick={() => setIsModalOpen(true)}>
             <UserPlus size={18} /> Add Employee
           </button>
         </div>
@@ -211,6 +220,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {isModalOpen && (
+        <AddEmployeeModal
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={handleEmployeeAdded}
+        />
+      )}
 
       <style>{`
                 .dashboard { animation: fadeIn 0.5s ease-out; }
