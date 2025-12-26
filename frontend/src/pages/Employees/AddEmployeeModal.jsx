@@ -23,7 +23,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
         setSubmitting(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/employees/', {
+            const response = await fetch('http://localhost:8000/employees/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
