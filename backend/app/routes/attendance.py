@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Request, HTTPException
 from typing import List
 from app.models.attendance import AttendanceRecord, AttendanceAction
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ async def check_in(request: Request, payload: AttendanceAction = Body(...)):
         "employee_id": str(emp["_id"]),
         "employee_name": f"{emp['first_name']} {emp['last_name']}",
         "date": today,
-        "check_in": datetime.utcnow(),
+        "check_in": datetime.now(timezone.utc),
         "status": "Present",
         "work_hours": 0.0
     }
@@ -67,7 +67,7 @@ async def check_out(request: Request, payload: AttendanceAction = Body(...)):
     if not record:
         raise HTTPException(status_code=400, detail="No check-in record found for today")
         
-    check_out_time = datetime.utcnow()
+    check_out_time = datetime.now(timezone.utc)
     
     # Calculate hours
     check_in_time = record["check_in"]
@@ -87,6 +87,15 @@ async def check_out(request: Request, payload: AttendanceAction = Body(...)):
 async def list_attendance(request: Request):
     attendance_list = []
     cursor = request.app.database["attendance"].find().sort("date", -1)
+    async for document in cursor:
+        document["_id"] = str(document["_id"])
+        attendance_list.append(document)
+    return attendance_list
+@router.get("/today", response_description="List today's attendance", response_model=List[AttendanceRecord])
+async def list_today_attendance(request: Request):
+    today = date.today().isoformat()
+    attendance_list = []
+    cursor = request.app.database["attendance"].find({"date": today})
     async for document in cursor:
         document["_id"] = str(document["_id"])
         attendance_list.append(document)

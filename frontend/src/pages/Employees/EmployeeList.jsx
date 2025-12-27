@@ -1,22 +1,45 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, MoreHorizontal, User, Mail, Briefcase, Calendar, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, User, Mail, Briefcase, Calendar, Trash2, Edit2 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
+import EditEmployeeModal from './EditEmployeeModal';
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState([]);
+  const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingEmployee, setEditingEmployee] = useState(null);
+
+  const [departmentFilter, setDepartmentFilter] = useState('All');
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:8000/employees/');
-      if (response.ok) {
-        const data = await response.json();
+      const empRes = await fetch('/api/employees/');
+      if (empRes.ok) {
+        const data = await empRes.json();
         setEmployees(data);
+      } else {
+        console.error("Failed to fetch employees status:", empRes.status);
       }
     } catch (error) {
       console.error("Failed to fetch employees", error);
+    }
+
+    try {
+      const attRes = await fetch('/api/attendance/today');
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        const attMap = {};
+        attData.forEach(record => {
+          attMap[record.employee_id] = record;
+        });
+        setAttendance(attMap);
+      } else {
+        console.warn("Failed to fetch attendance status:", attRes.status);
+      }
+    } catch (error) {
+      console.warn("Failed to fetch attendance data", error);
     } finally {
       setLoading(false);
     }
@@ -31,13 +54,18 @@ export default function EmployeeList() {
     setIsModalOpen(false);
   };
 
+  const handleEmployeeUpdated = (updatedEmployee) => {
+    setEmployees(employees.map(emp => emp._id === updatedEmployee._id ? updatedEmployee : emp));
+    setEditingEmployee(null);
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to remove this employee? This action cannot be undone.")) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/employees/${id}`, {
+      const response = await fetch(`/api/employees/${id}`, {
         method: 'DELETE',
       });
 
@@ -53,15 +81,29 @@ export default function EmployeeList() {
     }
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch =
+      (emp.employee_id && emp.employee_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      emp.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.department.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesFilter = departmentFilter === 'All' || emp.department === departmentFilter;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const formatTime = (isoString) => {
+    if (!isoString) return '-';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="page-container">
       <div className="page-header-flex">
+        {/* ... header content ... */}
         <div>
           <h1 className="page-title">Employees</h1>
           <p className="page-subtitle">Manage your team members and their details.</p>
@@ -77,17 +119,28 @@ export default function EmployeeList() {
           <Search size={18} className="search-icon" />
           <input
             type="text"
-            placeholder="Search by name, email, or role..."
+            placeholder="Search by name, email, role, or ID..."
             className="search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="filter-actions">
-          <button className="btn btn-outline">
-            <Filter size={18} />
-            <span>Filter</span>
-          </button>
+          <div className="select-wrapper">
+            <Filter size={18} className="filter-icon-absolute" />
+            <select
+              className="filter-select"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="All">All Departments</option>
+              <option value="Engineering">Engineering</option>
+              <option value="HR">HR</option>
+              <option value="Sales">Sales</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -98,59 +151,79 @@ export default function EmployeeList() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Employee</th>
                 <th>Role</th>
-                <th>Department</th>
                 <th>Status</th>
-                <th>Joined</th>
+                <th>Check In</th>
+                <th>Check Out</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.map((employee) => (
-                <tr key={employee._id}>
-                  <td>
-                    <div className="user-cell">
-                      <div className="avatar-circle">
-                        {employee.first_name[0]}{employee.last_name[0]}
+              {filteredEmployees.map((employee) => {
+                const empAttendance = attendance[employee._id];
+                return (
+                  <tr key={employee._id}>
+                    <td>
+                      <span className="id-text">{employee.employee_id || '-'}</span>
+                    </td>
+                    <td>
+                      <div className="user-cell">
+                        <div className="avatar-circle">
+                          {employee.first_name[0]}{employee.last_name[0]}
+                        </div>
+                        <div className="user-info">
+                          <span className="user-name">{employee.first_name} {employee.last_name}</span>
+                          <span className="user-email">{employee.email}</span>
+                        </div>
                       </div>
-                      <div className="user-info">
-                        <span className="user-name">{employee.first_name} {employee.last_name}</span>
-                        <span className="user-email">{employee.email}</span>
+                    </td>
+                    <td>
+                      <div className="role-info">
+                        <span className="role-text">{employee.role}</span>
+                        <span className="dept-text">{employee.department}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="role-text">{employee.role}</span>
-                  </td>
-                  <td>
-                    <span className="dept-badge">{employee.department}</span>
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${employee.status.toLowerCase().replace(' ', '-')}`}>
-                      {employee.status}
-                    </span>
-                  </td>
-                  <td>{employee.date_of_joining}</td>
-                  <td>
-                    <div className="action-row">
-                      <button className="action-btn" title="More options">
-                        <MoreHorizontal size={18} />
-                      </button>
-                      <button
-                        className="action-btn btn-delete"
-                        onClick={() => handleDelete(employee._id)}
-                        title="Remove employee"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${employee.status.toLowerCase().replace(' ', '-')}`}>
+                        {employee.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="time-text">
+                        {empAttendance ? formatTime(empAttendance.check_in) : '-'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="time-text">
+                        {empAttendance ? formatTime(empAttendance.check_out) : '-'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-row">
+                        <button
+                          className="action-btn"
+                          title="Edit employee"
+                          onClick={() => setEditingEmployee(employee)}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          className="action-btn btn-delete"
+                          onClick={() => handleDelete(employee._id)}
+                          title="Remove employee"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredEmployees.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="empty-state">
+                  <td colSpan="7" className="empty-state">
                     No employees found. Add one to get started.
                   </td>
                 </tr>
@@ -164,6 +237,14 @@ export default function EmployeeList() {
         <AddEmployeeModal
           onClose={() => setIsModalOpen(false)}
           onSuccess={handleEmployeeAdded}
+        />
+      )}
+
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onSuccess={handleEmployeeUpdated}
         />
       )}
 
@@ -320,6 +401,61 @@ export default function EmployeeList() {
         .loading-state, .empty-state {
           text-align: center;
           padding: 48px;
+          color: var(--text-muted);
+        }
+
+        .select-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .filter-icon-absolute {
+          position: absolute;
+          left: 12px;
+          color: var(--slate-500);
+          pointer-events: none;
+        }
+
+        .filter-select {
+          appearance: none;
+          background: white;
+          border: 1px solid var(--border-color);
+          padding: 8px 16px 8px 40px;
+          border-radius: var(--radius-md);
+          font-family: inherit;
+          font-size: 0.9rem;
+          color: var(--slate-700);
+          cursor: pointer;
+          outline: none;
+          min-width: 180px;
+        }
+
+        .filter-select:hover {
+          border-color: var(--slate-300);
+          background: var(--slate-50);
+        }
+
+        .id-text {
+          font-family: monospace;
+          color: var(--text-muted);
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+
+        .time-text {
+          font-family: monospace;
+          color: var(--text-main);
+          font-weight: 500;
+        }
+
+        .role-info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .dept-text {
+          font-size: 0.8rem;
           color: var(--text-muted);
         }
       `}</style>

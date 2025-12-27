@@ -7,34 +7,38 @@ import {
   Filter,
   Calendar,
   Briefcase,
-  Zap
+  Zap,
+  MoreHorizontal,
+  DollarSign,
+  FileText,
+  ChevronRight
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AddEmployeeModal from './Employees/AddEmployeeModal';
 
 const StatCard = ({ title, value, change, trend, icon: Icon, colorClass }) => (
-  <div className="card stat-card">
-    <div className="stat-header">
+  <div className="card stat-card ">
+    <div className="flex justify-between items-start mb-4">
       <div className={`icon-wrapper ${colorClass}`}>
-        <Icon size={22} />
+        <Icon size={24} />
       </div>
-      <span className={`trend-badge ${trend === 'up' ? 'trend-up' : 'trend-down'}`}>
-        {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+      <div className={`trend-badge ${trend === 'up' ? 'trend-up' : 'trend-down'}`}>
+        {trend === 'up' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
         {change}
-      </span>
+      </div>
     </div>
-    <div className="stat-content">
+    <div>
       <h3 className="stat-value">{value}</h3>
       <p className="stat-title">{title}</p>
     </div>
   </div>
 );
 
-const QuickAction = ({ icon: Icon, label, color }) => (
-  <button className="quick-action-btn">
+const QuickAction = ({ icon: Icon, label, color, onClick }) => (
+  <button className="quick-action-btn" onClick={onClick}>
     <div className="action-icon" style={{ backgroundColor: color }}>
-      <Icon size={18} />
+      <Icon size={20} />
     </div>
     <span>{label}</span>
   </button>
@@ -43,199 +47,226 @@ const QuickAction = ({ icon: Icon, label, color }) => (
 export default function Dashboard() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stats, setStats] = useState({
+    total_employees: 0,
+    active_jobs: 0,
+    on_leave: 0,
+    performance: 0,
+    attendance: { present: 0, absent: 0, on_leave: 0 }
+  });
+
+  useEffect(() => {
+    fetch('/api/dashboard/stats')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error("Failed to fetch dashboard stats", err));
+  }, []);
+
   const firstName = user?.name?.split(' ')[0] || 'User';
 
   const handleEmployeeAdded = (newEmployee) => {
-    console.log('Employee added:', newEmployee);
+    // Refresh stats
+    setStats(prev => ({
+      ...prev,
+      total_employees: prev.total_employees + 1
+    }));
     setIsModalOpen(false);
-    // In a real app, you might want to refresh stats here
   };
 
   return (
-    <div className="dashboard">
-      <div className="page-header flex items-center justify-between">
+    <div className="dashboard-container">
+      {/* Header Section */}
+      <div className="dashboard-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Welcome back, {firstName}. Here's what's happening today.</p>
         </div>
-        <div className="header-actions">
-          <button className="btn-secondary flex items-center gap-2">
-            <Filter size={18} /> Filter
+        <div className="flex gap-3">
+          <button className="btn-secondary flex items-center gap-2" onClick={() => alert("Filter feature coming soon")}>
+            <Filter size={18} />
+            <span>Filter</span>
           </button>
           <button className="btn-premium" onClick={() => setIsModalOpen(true)}>
-            <UserPlus size={18} /> Add Employee
+            <UserPlus size={18} />
+            <span>Add Employee</span>
           </button>
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="stats-grid">
         <StatCard
           title="Total Employees"
-          value="1,248"
+          value={stats.total_employees}
           change="+12%"
           trend="up"
           icon={Users}
-          colorClass="icon-blue"
+          colorClass="bg-blue-50 text-blue-600"
         />
         <StatCard
           title="Active Jobs"
-          value="12"
-          change="+2"
+          value={stats.active_jobs}
+          change="+0"
           trend="up"
           icon={Briefcase}
-          colorClass="icon-purple"
+          colorClass="bg-purple-50 text-purple-600"
         />
         <StatCard
           title="On Leave"
-          value="18"
-          change="-2%"
+          value={stats.on_leave}
+          change="Today"
           trend="down"
           icon={Clock}
-          colorClass="icon-orange"
+          colorClass="bg-orange-50 text-orange-600"
         />
         <StatCard
           title="Performance"
-          value="94%"
+          value={`${stats.performance}%`}
           change="+5%"
           trend="up"
           icon={Zap}
-          colorClass="icon-green"
+          colorClass="bg-green-50 text-green-600"
         />
       </div>
 
+      {/* Main Content Grid */}
       <div className="content-grid">
-        <div className="main-section">
-          <div className="card mb-6">
-            <div className="card-header justify-between">
-              <h2>Organization Attendance Overview</h2>
-              <div className="card-actions">
-                <select className="mini-select">
-                  <option>Today</option>
-                  <option>Yesterday</option>
-                </select>
-              </div>
+        {/* Left Column */}
+        <div className="main-section flex flex-col gap-6">
+
+          {/* Attendance Overview */}
+          <div className="card p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="card-title">Attendance Overview</h2>
+              <select className="mini-select">
+                <option>Today</option>
+              </select>
             </div>
-            <div className="attendance-grid mt-4">
-              <div className="attendance-box">
-                <span className="count">1,180</span>
-                <span className="label">Present</span>
+
+            <div className="grid grid-cols-3 gap-4 mb-2">
+              <div className="attendance-metric">
+                <span className="metric-value text-slate-900">{stats.attendance.present}</span>
+                <span className="metric-label text-green-600">Present</span>
+                <div className="h-1 w-full bg-slate-100 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full bg-green-500" style={{ width: `${stats.total_employees ? (stats.attendance.present / stats.total_employees) * 100 : 0}%` }}></div>
+                </div>
               </div>
-              <div className="attendance-box">
-                <span className="count">42</span>
-                <span className="label">Absent</span>
+              <div className="attendance-metric">
+                <span className="metric-value text-slate-900">{stats.attendance.absent}</span>
+                <span className="metric-label text-red-500">Absent</span>
+                <div className="h-1 w-full bg-slate-100 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full bg-red-500" style={{ width: `${stats.total_employees ? (stats.attendance.absent / stats.total_employees) * 100 : 0}%` }}></div>
+                </div>
               </div>
-              <div className="attendance-box">
-                <span className="count">26</span>
-                <span className="label">On Leave</span>
-              </div>
-            </div>
-            <div className="fake-chart-container mt-6">
-              <div className="flex justify-between items-end h-32 gap-2">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center flex-1">
-                    <div className="w-full bg-slate-100 rounded-t-lg relative overflow-hidden" style={{ height: `${Math.random() * 80 + 20}%` }}>
-                      <div className="absolute bottom-0 w-full bg-primary-500/20" style={{ height: '70%' }}></div>
-                    </div>
-                    <span className="text-[10px] mt-2 text-slate-400 font-bold">{['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i]}</span>
-                  </div>
-                ))}
+              <div className="attendance-metric">
+                <span className="metric-value text-slate-900">{stats.attendance.on_leave}</span>
+                <span className="metric-label text-orange-500">On Leave</span>
+                <div className="h-1 w-full bg-slate-100 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full bg-orange-500" style={{ width: `${stats.total_employees ? (stats.attendance.on_leave / stats.total_employees) * 100 : 0}%` }}></div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header justify-between">
-              <h2>Upcoming Events</h2>
-              <button className="text-btn">View All</button>
+          {/* Activity Feed */}
+          <div className="card p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="card-title">Recent Activity</h2>
+              <button className="text-sm font-semibold text-primary-600 hover:text-primary-700">View All</button>
             </div>
-            <div className="events-list">
-              <div className="event-item">
-                <div className="event-date">
-                  <span className="day">24</span>
-                  <span className="month">DEC</span>
+            <div className="flex flex-col gap-6">
+              {[
+                { user: 'Sarah Smith', action: 'applied for leave', time: '2 mins ago', color: 'bg-blue-500' },
+                { user: 'John Doe', action: 'completed onboarding', time: '1 hour ago', color: 'bg-green-500' },
+                { user: 'Mike Johnson', action: 'updated project status', time: '3 hours ago', color: 'bg-purple-500' }
+              ].map((activity, idx) => (
+                <div key={idx} className="flex gap-4 items-start">
+                  <div className={`w-2.5 h-2.5 rounded-full mt-2 shrink-0 ${activity.color}`}></div>
+                  <div>
+                    <p className="text-sm text-slate-700">
+                      <span className="font-bold text-slate-900">{activity.user}</span> {activity.action}
+                    </p>
+                    <span className="text-xs text-slate-400 font-medium">{activity.time}</span>
+                  </div>
                 </div>
-                <div className="event-info">
-                  <h4>Annual Team Brunch</h4>
-                  <p>Main Conference Hall • 11:30 AM</p>
-                </div>
-              </div>
-              <div className="event-item">
-                <div className="event-date">
-                  <span className="day">28</span>
-                  <span className="month">DEC</span>
-                </div>
-                <div className="event-info">
-                  <h4>Client Strategy Meeting</h4>
-                  <p>Virtual • 02:00 PM</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="side-section">
-          <div className="card mb-6">
-            <h2 className="mb-4">Leave Balance</h2>
-            <div className="leave-balance-grid">
-              <div className="leave-stat">
-                <span className="label">Paid Leave</span>
-                <span className="value">12/20</span>
-                <div className="progress-bar"><div className="progress" style={{ width: '60%' }}></div></div>
-              </div>
-              <div className="leave-stat">
-                <span className="label">Sick Leave</span>
-                <span className="value">08/12</span>
-                <div className="progress-bar"><div className="progress" style={{ width: '75%', backgroundColor: '#22c55e' }}></div></div>
-              </div>
-            </div>
-          </div>
-          <div className="card mb-6">
-            <h2>Quick Actions</h2>
-            <div className="quick-actions-grid">
-              <QuickAction icon={UserPlus} label="New Hire" color="var(--primary-100)" />
-              <QuickAction icon={Calendar} label="Request Leave" color="#ffedd5" />
-              <QuickAction icon={Briefcase} label="Post Job" color="#f3e8ff" />
-              <QuickAction icon={Users} label="Team View" color="#dcfce7" />
+        {/* Right Column */}
+        <div className="side-section flex flex-col gap-6">
+
+          {/* Quick Actions */}
+          <div className="card p-6">
+            <h2 className="card-title mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <QuickAction icon={UserPlus} label="New Hire" color="#eff6ff" onClick={() => setIsModalOpen(true)} />
+              <QuickAction icon={Calendar} label="Time Off" color="#fff7ed" onClick={() => alert("Leave Management Coming Soon")} />
+              <QuickAction icon={Briefcase} label="Post Job" color="#faf5ff" onClick={() => alert("Recruitment Coming Soon")} />
+              <QuickAction icon={FileText} label="Reports" color="#f0fdf4" onClick={() => alert("Reports Coming Soon")} />
             </div>
           </div>
 
-          <div className="card mb-6">
-            <div className="card-header justify-between">
-              <h2>Recent Activity</h2>
-              <button className="text-btn">Clear</button>
+          {/* Leave Balance */}
+          <div className="card p-6">
+            <h2 className="card-title mb-4">Leave Balance</h2>
+            <div className="flex flex-col gap-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-slate-600">Paid Leave</span>
+                  <span className="text-sm font-bold text-slate-900">12/20</span>
+                </div>
+                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary-500" style={{ width: '60%', boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}></div>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-slate-600">Sick Leave</span>
+                  <span className="text-sm font-bold text-slate-900">8/12</span>
+                </div>
+                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500" style={{ width: '75%', boxShadow: '0 0 10px rgba(34,197,94,0.4)' }}></div>
+                </div>
+              </div>
             </div>
-            <ul className="activity-list">
-              <li>
-                <div className="activity-dot blue"></div>
-                <div>
-                  <p className="activity-text"><strong>Sarah Smith</strong> applied for leave</p>
-                  <span className="activity-time">2 mins ago</span>
-                </div>
-              </li>
-              <li>
-                <div className="activity-dot green"></div>
-                <div>
-                  <p className="activity-text"><strong>John Doe</strong> completed onboarding</p>
-                  <span className="activity-time">1 hour ago</span>
-                </div>
-              </li>
-            </ul>
           </div>
 
-          <div className="card">
-            <div className="card-header justify-between">
-              <h2>Expenses</h2>
-              <button className="text-btn">Claim</button>
+          {/* Upcoming Events */}
+          <div className="card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="card-title">Events</h2>
+              <button className="p-1 hover:bg-slate-100 rounded-full text-slate-400">
+                <MoreHorizontal size={20} />
+              </button>
             </div>
-            <div className="expense-summary">
-              <div className="flex justify-between mb-2">
-                <span className="text-muted text-sm">Target</span>
-                <span className="font-bold text-sm">$2,500</span>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
+                <div className="w-12 h-12 bg-primary-50 rounded-xl flex flex-col items-center justify-center border border-primary-100 group-hover:border-primary-200">
+                  <span className="text-xs font-bold text-primary-600 uppercase">Dec</span>
+                  <span className="text-lg font-black text-slate-900 leading-none">24</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Annual Brunch</h4>
+                  <p className="text-xs text-slate-500 mt-1">11:30 AM • Hall A</p>
+                </div>
               </div>
-              <div className="progress-bar mb-4"><div className="progress" style={{ width: '45%', backgroundColor: '#a855f7' }}></div></div>
-              <p className="text-xs text-muted">You have 2 pending claims totaling <strong>$145.00</strong></p>
+
+              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
+                <div className="w-12 h-12 bg-purple-50 rounded-xl flex flex-col items-center justify-center border border-purple-100 group-hover:border-purple-200">
+                  <span className="text-xs font-bold text-purple-600 uppercase">Dec</span>
+                  <span className="text-lg font-black text-slate-900 leading-none">28</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Strategy Meet</h4>
+                  <p className="text-xs text-slate-500 mt-1">2:00 PM • Virtual</p>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -247,128 +278,200 @@ export default function Dashboard() {
       )}
 
       <style>{`
-                .dashboard { animation: fadeIn 0.5s ease-out; }
-                
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
+        .dashboard-container {
+            max-width: 100%;
+        }
 
-                .page-header { margin-bottom: 32px; }
-                .page-title { font-size: 2rem; font-weight: 800; color: var(--slate-900); letter-spacing: -0.02em; }
-                .page-subtitle { color: var(--slate-500); margin-top: 4px; font-size: 1.05rem; }
-                
-                .header-actions { display: flex; gap: 12px; }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 32px;
+        }
 
-                .stats-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                    gap: 24px;
-                    margin-bottom: 32px;
-                }
+        .page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--slate-900);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
 
-                .stat-card {
-                    padding: 24px;
-                    background: white;
-                    border: 1px solid var(--slate-200);
-                    border-radius: 20px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); border-color: var(--primary-200); }
+        .page-subtitle {
+            margin-top: 8px;
+            color: var(--slate-500);
+            font-size: 1.05rem;
+        }
 
-                .stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-                .icon-wrapper { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-                
-                .icon-blue { background: #eff6ff; color: #2563eb; }
-                .icon-green { background: #f0fdf4; color: #16a34a; }
-                .icon-orange { background: #fff7ed; color: #ea580c; }
-                .icon-purple { background: #faf5ff; color: #9333ea; }
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
 
-                .trend-badge { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 100px; }
-                .trend-up { background: #dcfce7; color: #15803d; }
-                .trend-down { background: #fee2e2; color: #b91c1c; }
+        .stat-card {
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-                .stat-value { font-size: 2.25rem; font-weight: 800; color: var(--slate-900); letter-spacing: -0.03em; }
-                .stat-title { color: var(--slate-500); font-weight: 600; font-size: 0.95rem; margin-top: 4px; }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
 
-                .content-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
-                .mb-6 { margin-bottom: 24px; }
+        .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .bg-blue-50 { background: #eff6ff; }
+        .text-blue-600 { color: #2563eb; }
+        
+        .bg-purple-50 { background: #faf5ff; }
+        .text-purple-600 { color: #9333ea; }
+        
+        .bg-orange-50 { background: #fff7ed; }
+        .text-orange-600 { color: #ea580c; }
+        
+        .bg-green-50 { background: #f0fdf4; }
+        .text-green-600 { color: #16a34a; }
 
-                .card-header { display: flex; align-items: center; margin-bottom: 20px; }
-                .card-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--slate-900); }
+        .trend-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 100px;
+        }
 
-                .placeholder-chart {
-                    height: 240px;
-                    background: #fcfcfd;
-                    border-radius: 16px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: flex-end;
-                    padding: 24px;
-                    position: relative;
-                }
+        .trend-up { background: #dcfce7; color: #16a34a; }
+        .trend-down { background: #fee2e2; color: #dc2626; }
 
-                .fake-waves { display: flex; align-items: flex-end; gap: 8px; width: 100%; height: 100px; margin-bottom: 24px; }
-                .wave-bar { flex: 1; background: var(--primary-100); border-radius: 4px 4px 0 0; transition: all 0.3s; }
-                .wave-bar:hover { background: var(--primary-400); transform: scaleY(1.1); }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--slate-900);
+            letter-spacing: -0.02em;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
 
-                .quick-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-                .quick-action-btn {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 20px;
-                    background: var(--slate-50);
-                    border-radius: 16px;
-                    border: 1px solid var(--slate-200);
-                    transition: all 0.2s;
-                }
-                .quick-action-btn:hover { background: white; border-color: var(--primary-500); transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-                .action-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--slate-700); }
-                .quick-action-btn span { font-size: 0.9rem; font-weight: 600; color: var(--slate-700); }
+        .stat-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--slate-500);
+        }
 
-                .events-list { display: flex; flex-direction: column; gap: 16px; }
-                .event-item { display: flex; align-items: center; gap: 20px; padding: 16px; border-radius: 12px; background: var(--slate-50); }
-                .event-date { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 56px; height: 56px; background: white; border: 1px solid var(--slate-200); border-radius: 12px; }
-                .event-date .day { font-size: 1.25rem; font-weight: 800; color: var(--primary-600); line-height: 1; }
-                .event-date .month { font-size: 0.7rem; font-weight: 700; color: var(--slate-400); margin-top: 2px; }
-                .event-info h4 { font-size: 1rem; font-weight: 700; color: var(--slate-900); }
-                .event-info p { font-size: 0.85rem; color: var(--slate-500); margin-top: 2px; }
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
 
-                .activity-list { display: flex; flex-direction: column; gap: 20px; list-style: none; }
-                .activity-list li { display: flex; gap: 16px; }
-                .activity-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 0 4px white; }
-                .activity-dot.blue { background: #3b82f6; }
-                .activity-dot.green { background: #22c55e; }
-                .activity-dot.purple { background: #a855f7; }
-                .activity-text { font-size: 0.95rem; color: var(--slate-700); line-height: 1.5; }
-                .activity-time { font-size: 0.8rem; color: var(--slate-400); font-weight: 500; }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--slate-900);
+        }
 
-                .mini-select { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--slate-200); font-size: 0.85rem; font-weight: 600; color: var(--slate-600); cursor: pointer; }
-                .text-btn { font-size: 0.9rem; font-weight: 700; color: var(--primary-600); }
-                .text-btn:hover { color: var(--primary-700); }
+        .mini-select {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--slate-600);
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }
 
-                .attendance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; }
-                .attendance-box { padding: 16px; background: var(--slate-50); border-radius: 16px; display: flex; flex-direction: column; gap: 4px; }
-                .attendance-box .count { font-size: 1.25rem; font-weight: 800; color: var(--slate-900); }
-                .attendance-box .label { font-size: 0.75rem; color: var(--slate-400); font-weight: 700; text-transform: uppercase; }
+        .attendance-metric {
+            text-align: center;
+            padding: 16px;
+            background: var(--slate-50);
+            border-radius: 16px;
+            border: 1px solid var(--slate-100);
+        }
 
-                .leave-balance-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
-                .leave-stat { display: flex; flex-direction: column; gap: 4px; }
-                .leave-stat .label { font-size: 0.85rem; color: var(--slate-500); font-weight: 600; }
-                .leave-stat .value { font-size: 1rem; font-weight: 800; color: var(--slate-900); }
-                .progress-bar { height: 8px; background: var(--slate-100); border-radius: 4px; overflow: hidden; }
-                .progress { hieght: 100%; height: 100%; background: var(--primary-500); transition: width 0.3s; }
+        .metric-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
 
-                .expense-summary { padding: 8px 0; }
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-                @media (max-width: 1200px) {
-                    .content-grid { grid-template-columns: 1fr; }
-                    .side-section { order: -1; }
-                }
-            `}</style>
+        /* Quick Actions */
+        .quick-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 16px;
+            transition: all 0.2s;
+            height: 110px;
+        }
+
+        .quick-action-btn:hover {
+            background: white;
+            border-color: var(--primary-400);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--slate-700);
+        }
+
+        .quick-action-btn span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--slate-700);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+      `}</style>
     </div>
   );
 }

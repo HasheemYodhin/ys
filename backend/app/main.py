@@ -5,33 +5,22 @@ import os
 
 # Import Routes
 from .routes import auth
-from app.routes import employees, payroll, attendance, recruitment, finance, cms, leaves
+from app.routes import employees, payroll, attendance, recruitment, finance, cms, leaves, dashboard
+
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://127.0.0.1:27017")
 
 app = FastAPI(title="YS HR Management System", version="1.0.0")
 
 # CORS setup
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175", 
-    "http://localhost:5176",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:5175",
-    "http://127.0.0.1:5176",
-]
-
+# Allow all origins for development to avoid localhost vs 127.0.0.1 blocking
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Database Connection
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = "ys_hr_db"
 
 @app.on_event("startup")
@@ -57,6 +46,7 @@ app.include_router(leaves.router, prefix="/leaves", tags=["leaves"])
 app.include_router(recruitment.router, prefix="/recruitment", tags=["recruitment"])
 app.include_router(finance.router, prefix="/finance", tags=["finance"])
 app.include_router(cms.router, prefix="/cms", tags=["cms"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 
 @app.get("/")
 async def root():

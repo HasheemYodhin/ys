@@ -77,14 +77,14 @@ const Header = () => {
 
       <style>{`
         .header {
-          height: 72px;
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(8px);
-          border-bottom: 1px solid var(--border-color);
+          height: 80px;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--border-subtle);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 32px;
+          padding: 0 40px;
           position: sticky;
           top: 0;
           z-index: 40;
@@ -92,91 +92,92 @@ const Header = () => {
 
         .header-search {
           position: relative;
-          width: 320px;
+          width: 400px;
+          transition: width 0.3s ease;
+        }
+        
+        .header-search:focus-within {
+          width: 450px;
         }
 
         .search-icon {
           position: absolute;
-          left: 12px;
+          left: 16px;
           top: 50%;
           transform: translateY(-50%);
-          color: var(--text-muted);
+          color: var(--slate-400);
         }
 
         .search-input {
           width: 100%;
-          height: 40px;
-          padding-left: 38px;
-          padding-right: 16px;
+          height: 48px;
+          padding-left: 48px;
+          padding-right: 20px;
           border-radius: var(--radius-full);
-          border: 1px solid var(--border-color);
-          background: var(--slate-50);
-          font-size: 0.9rem;
-          transition: all var(--transition-fast);
-          outline: none;
+          border: 1px solid transparent;
+          background: var(--slate-100);
+          font-size: 0.95rem;
+          transition: all 0.2s;
         }
 
         .search-input:focus {
           background: white;
           border-color: var(--primary-300);
-          box-shadow: 0 0 0 3px var(--primary-50);
+          box-shadow: 0 0 0 4px var(--primary-50);
         }
 
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 24px;
+          gap: 32px;
         }
 
         .icon-btn {
           position: relative;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: white;
-          border: 1px solid var(--border-color);
-          color: var(--text-muted);
-          transition:  all var(--transition-fast);
+          background: transparent;
+          color: var(--slate-500);
+          transition: all 0.2s;
         }
         
         .icon-btn:hover {
-          background: var(--slate-50);
+          background: var(--slate-100);
           color: var(--primary-600);
+          transform: translateY(-2px);
         }
 
         .badge {
           position: absolute;
-          top: -2px;
-          right: -2px;
-          background: #ef4444;
+          top: 0;
+          right: 0;
+          background: var(--accent-rose);
           color: white;
-          font-size: 10px;
-          font-weight: 700;
-          height: 16px;
-          min-width: 16px;
-          padding: 0 4px;
-          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 800;
+          height: 18px;
+          min-width: 18px;
+          padding: 0 5px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: 2px solid white;
-        }
-
-        .profile-container {
-          position: relative;
+          box-shadow: 0 2px 4px rgba(244, 63, 94, 0.3);
         }
 
         .user-profile-trigger {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 6px 12px;
+          gap: 16px;
+          padding: 6px 8px;
           border-radius: 12px;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
         .user-profile-trigger:hover {
@@ -189,57 +190,49 @@ const Header = () => {
 
         .user-name {
           display: block;
-          font-size: 0.9rem;
-          font-weight: 600;
+          font-size: 0.95rem;
+          font-weight: 700;
           color: var(--text-main);
           line-height: 1.2;
         }
 
         .user-role {
           display: block;
-          font-size: 0.75rem;
-          color: var(--text-muted);
+          font-size: 0.8rem;
+          color: var(--slate-500);
+          font-weight: 500;
         }
 
         .avatar-wrapper {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 8px;
         }
 
+        .user-avatar-img {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          object-fit: cover;
+          border: 2px solid white;
+          box-shadow: var(--shadow-md);
+        }
+        
         .user-avatar {
           color: var(--slate-400);
         }
 
-        .user-avatar-img {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .dropdown-arrow {
-          color: var(--slate-400);
-          transition: transform 0.2s;
-        }
-
-        .dropdown-arrow.open {
-          transform: rotate(180deg);
-        }
-
         .profile-dropdown {
           position: absolute;
-          top: calc(100% + 8px);
+          top: calc(100% + 14px);
           right: 0;
-          width: 220px;
+          width: 260px;
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-          border: 1px solid var(--border-color);
+          border-radius: 20px;
+          box-shadow: var(--shadow-float);
+          border: 1px solid var(--border-subtle);
           overflow: hidden;
-          padding: 8px;
+          padding: 12px;
           animation: slideDown 0.2s ease-out;
         }
 
@@ -249,42 +242,46 @@ const Header = () => {
         }
 
         .dropdown-header {
-          padding: 12px 16px;
+          padding: 16px;
+          background: var(--slate-50);
+          border-radius: 12px;
+          margin-bottom: 8px;
         }
 
         .dropdown-user-name {
           font-weight: 700;
           color: var(--slate-900);
-          font-size: 0.95rem;
+          font-size: 1rem;
         }
 
         .dropdown-user-email {
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           color: var(--slate-500);
         }
 
         .dropdown-divider {
           height: 1px;
-          background: var(--border-color);
+          background: var(--border-subtle);
           margin: 8px 0;
         }
 
         .dropdown-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 16px;
+          gap: 12px;
+          padding: 12px 16px;
           color: var(--slate-600);
           text-decoration: none;
-          font-size: 0.9rem;
-          font-weight: 500;
-          border-radius: 8px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          border-radius: 12px;
           transition: all 0.2s;
         }
 
         .dropdown-item:hover {
           background: var(--slate-50);
           color: var(--primary-600);
+          transform: translateX(4px);
         }
 
         .logout-item {
@@ -292,7 +289,7 @@ const Header = () => {
           border: none;
           background: none;
           cursor: pointer;
-          color: #ef4444;
+          color: var(--accent-rose);
         }
 
         .logout-item:hover {
@@ -305,6 +302,7 @@ const Header = () => {
 };
 
 export default function Layout({ children }) {
+  const { user } = useAuth();
   return (
     <div className="layout">
       <Sidebar />
@@ -319,19 +317,21 @@ export default function Layout({ children }) {
         .layout {
           display: flex;
           min-height: 100vh;
+          background-color: var(--bg-body);
         }
 
         .main-content {
           flex: 1;
-          margin-left: 260px; /* Aligned with Sidebar width */
+          margin-left: 270px; /* Aligned with Sidebar width */
           display: flex;
           flex-direction: column;
+          min-width: 0; /* Prevent flex overflow */
         }
 
         .page-content {
-          padding: 32px;
+          padding: 40px;
           flex: 1;
-          max-width: 1400px;
+          max-width: 1600px;
           margin: 0 auto;
           width: 100%;
         }

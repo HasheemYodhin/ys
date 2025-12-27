@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Auth/Login';
 import Signup from './pages/Auth/Signup';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 import EmployeeList from './pages/Employees/EmployeeList';
 import PayrollDashboard from './pages/Payroll/PayrollDashboard';
 import AttendanceDashboard from './pages/Attendance/AttendanceDashboard';
@@ -33,6 +36,8 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/careers" element={<Careers />} />
       <Route path="/about" element={<AboutUs />} />
       <Route path="/contact" element={<ContactUs />} />
@@ -42,27 +47,29 @@ function AppRoutes() {
 
       {/* Protected Application Routes */}
       <Route path="/*" element={
-        <Layout>
-          <Routes>
-            <Route
-              path="/dashboard"
-              element={user?.role === 'Employer' ? <Dashboard /> : <EmployeeDashboard />}
-            />
-            <Route path="/employees" element={<EmployeeList />} />
-            <Route path="/payroll" element={<PayrollDashboard />} />
-            <Route path="/attendance" element={<AttendanceDashboard />} />
-            <Route path="/recruitment" element={<RecruitmentDashboard />} />
-            <Route path="/leave" element={<LeaveManagement />} />
-            <Route path="/expenses" element={<ExpenseManagement />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/reports" element={<ReportsDashboard />} />
-            <Route path="/organization" element={<OrganizationDashboard />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            {/* Fallback to Dashboard */}
-            <Route path="*" element={<Dashboard />} />
-          </Routes>
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Routes>
+              <Route
+                path="/dashboard"
+                element={user?.role === 'Employer' ? <Dashboard /> : <EmployeeDashboard />}
+              />
+              <Route path="/employees" element={<EmployeeList />} />
+              <Route path="/payroll" element={<PayrollDashboard />} />
+              <Route path="/attendance" element={<AttendanceDashboard />} />
+              <Route path="/recruitment" element={<RecruitmentDashboard />} />
+              <Route path="/leave" element={<LeaveManagement />} />
+              <Route path="/expenses" element={<ExpenseManagement />} />
+              <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/reports" element={<ReportsDashboard />} />
+              <Route path="/organization" element={<OrganizationDashboard />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              {/* Fallback to Dashboard */}
+              <Route path="*" element={<Dashboard />} />
+            </Routes>
+          </Layout>
+        </ProtectedRoute>
       } />
     </Routes>
   );

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from ..models.user import UserCreate, UserLogin, UserResponse, UserInDB, UserUpdate
-from ..auth_utils import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
+from ..models.user import UserCreate, UserLogin, UserResponse, UserInDB, UserUpdate, PasswordResetRequest, PasswordResetConfirm
+from ..auth_utils import get_password_hash, verify_password, create_access_token, create_reset_token, verify_reset_token, SECRET_KEY, ALGORITHM
 from ..database import get_database
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
@@ -90,4 +90,44 @@ async def update_profile(
     updated_user = await db["users"].find_one({"_id": current_user["_id"]})
     if updated_user:
         updated_user["_id"] = str(updated_user["_id"])
-    return updated_user
+    if updated_user:
+        updated_user["_id"] = str(updated_user["_id"])
+
+@router.post("/forgot-password")
+async def forgot_password(request: PasswordResetRequest, db=Depends(get_database)):
+    user = await db["users"].find_one({"email": {"$regex": f"^{request.email}$", "$options": "i"}})
+    if not user:
+        # For security, don't reveal if user exists. 
+        # But for this dev phase, we might want to know.
+        # Let's return success anyway.
+        return {"message": "If this email is registered, a reset link has been sent."}
+    
+    token = create_reset_token(request.email)
+    # MOCK EMAIL SENDING
+    reset_link = f"http://localhost:5173/reset-password?token={token}"
+    print(f"RESET LINK FOR {request.email}: {reset_link}")
+    
+    return {
+        "message": "Reset link generated (check server console for dev)",
+        "reset_link": reset_link # Returning in body for easy testing as per plan
+    }
+
+@router.post("/reset-password")
+async def reset_password(request: PasswordResetConfirm, db=Depends(get_database)):
+    email = verify_reset_token(request.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+        
+    user = await db["users"].find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    hashed_password = get_password_hash(request.new_password)
+    
+    await db["users"].update_one(
+        {"email": email},
+        {"$set": {"hashed_password": hashed_password}}
+    )
+    
+    return {"message": "Password updated successfully"}
+

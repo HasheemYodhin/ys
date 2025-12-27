@@ -1,21 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export default function AddEmployeeModal({ onClose, onSuccess }) {
+export default function EditEmployeeModal({ employee, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         employee_id: '',
         first_name: '',
         last_name: '',
         email: '',
         role: '',
-        department: 'Engineering',
-        status: 'Active',
-        date_of_joining: new Date().toISOString().split('T')[0],
-        relieving_date: '',
+        department: '',
+        status: '',
+        date_of_joining: '',
         salary: '',
         password: ''
     });
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (employee) {
+            setFormData({
+                employee_id: employee.employee_id || '',
+                first_name: employee.first_name || '',
+                last_name: employee.last_name || '',
+                email: employee.email || '',
+                role: employee.role || '',
+                department: employee.department || 'Engineering',
+                status: employee.status || 'Active',
+                date_of_joining: employee.date_of_joining || '',
+                relieving_date: employee.relieving_date || '',
+                salary: employee.salary || '',
+                password: '' // Keep password empty initially
+            });
+        }
+    }, [employee]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,29 +43,30 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
         setSubmitting(true);
 
         const payload = { ...formData };
+        if (!payload.password) delete payload.password;
         if (!payload.relieving_date) delete payload.relieving_date;
+        payload.salary = parseFloat(payload.salary) || 0;
 
         try {
-            const response = await fetch('/api/employees/', {
-                method: 'POST',
+            const response = await fetch(`/api/employees/${employee._id}`, {
+                // ... fetch options
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ...payload,
-                    salary: parseFloat(formData.salary) || 0
-                }),
+                body: JSON.stringify(payload),
             });
+            // ... (rest of the code)
 
             if (response.ok) {
-                const newEmployee = await response.json();
-                onSuccess(newEmployee);
+                const updatedEmployee = await response.json();
+                onSuccess(updatedEmployee);
             } else {
                 const errorData = await response.json();
-                alert(`Failed to create employee: ${errorData.detail || errorData.message || response.statusText}`);
+                alert(`Failed to update employee: ${errorData.detail || errorData.message || response.statusText}`);
             }
         } catch (error) {
-            console.error("Error creating employee", error);
+            console.error("Error updating employee", error);
             alert("Connection error: Could not reach the server.");
         } finally {
             setSubmitting(false);
@@ -58,14 +76,16 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
     return (
         <div className="modal-overlay">
             <div className="modal-card">
+                {/* ... header */}
                 <div className="modal-header">
-                    <h3>Add New Employee</h3>
+                    <h3>Edit Employee</h3>
                     <button className="close-btn" onClick={onClose}>
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="modal-form">
+                    {/* ... other fields */}
                     <div className="form-group">
                         <label>Employee ID</label>
                         <input
@@ -119,7 +139,6 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
                                 name="role"
                                 value={formData.role}
                                 onChange={handleChange}
-                                placeholder="e.g. Senior Developer"
                                 required
                             />
                         </div>
@@ -165,32 +184,30 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
                                 name="salary"
                                 value={formData.salary}
                                 onChange={handleChange}
-                                placeholder="80000"
                                 required
                             />
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <label>Password</label>
+                        <label>New Password (leave blank to keep current)</label>
                         <input
                             type="password"
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            placeholder="Set initial password"
-                            required
+                            placeholder="Enter new password"
                         />
                     </div>
 
                     <div className="modal-actions">
                         <button type="button" className="btn btn-text" onClick={onClose}>Cancel</button>
                         <button type="submit" className="btn btn-primary" disabled={submitting}>
-                            {submitting ? 'Creating...' : 'Create Employee'}
+                            {submitting ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 </form>
-            </div >
+            </div>
 
             <style>{`
         .modal-overlay {
@@ -300,6 +317,6 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
           border-radius: var(--radius-md);
         }
       `}</style>
-        </div >
+        </div>
     );
 }

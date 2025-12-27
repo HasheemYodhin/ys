@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchUser = async (token) => {
         try {
-            const response = await fetch('http://localhost:8000/auth/users/me', {
+            const response = await fetch('/api/auth/users/me', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -31,8 +31,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     const updateProfile = async (profileData) => {
-        const token = localStorage.getItem('ys_token');
-        const response = await fetch('http://localhost:8000/auth/profile', {
+        const token = sessionStorage.getItem('ys_token');
+        const response = await fetch('/api/auth/profile', {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem('ys_token');
+        const token = sessionStorage.getItem('ys_token');
         if (token) {
             fetchUser(token);
         } else {
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
         formData.append('username', email);
         formData.append('password', password);
 
-        const response = await fetch('http://localhost:8000/auth/token', {
+        const response = await fetch('/api/auth/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -82,13 +82,16 @@ export const AuthProvider = ({ children }) => {
         }
 
         const data = await response.json();
-        localStorage.setItem('ys_token', data.access_token);
+        // Clear old token first
+        sessionStorage.removeItem('ys_token');
+        sessionStorage.setItem('ys_token', data.access_token);
+        // Force state update instantly
         await fetchUser(data.access_token);
         return true;
     };
 
     const signup = async (userData) => {
-        const response = await fetch('http://localhost:8000/auth/signup', {
+        const response = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -105,7 +108,8 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('ys_token');
+        sessionStorage.removeItem('ys_token');
+        // Redirect logic is handled by components using 'user' state
     };
 
     return (
