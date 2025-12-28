@@ -20,7 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['Employer', 'Employee'] },
   { label: 'My Profile', icon: User, path: '/profile', roles: ['Employee'] },
-  { label: 'Attendance', icon: CalendarClock, path: '/attendance', roles: ['Employer', 'Employee'] },
+  { label: 'Attendance Log', icon: CalendarClock, path: '/attendance', roles: ['Employer', 'Employee'] },
   { label: 'Employees', icon: Users, path: '/employees', roles: ['Employer'] },
   { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['Employer', 'Employee'] },
   { label: 'Organization', icon: Network, path: '/organization', roles: ['Employer'] },
@@ -29,7 +29,6 @@ const NAV_ITEMS = [
   { label: 'Leave Management', icon: CalendarDays, path: '/leave', roles: ['Employer', 'Employee'] },
   { label: 'Expense Claims', icon: ReceiptRussianRuble, path: '/expenses', roles: ['Employer', 'Employee'] },
   { label: 'Documents', icon: FileBox, path: '/documents', roles: ['Employer', 'Employee'] },
-  { label: 'View Analytics', icon: BarChart3, path: '/analytics', roles: ['Employer'] },
 ];
 
 export default function Sidebar() {
@@ -56,16 +55,24 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {filteredItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            <item.icon size={20} />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {filteredItems.map((item) => {
+          // Show different label for attendance based on role
+          let displayLabel = item.label;
+          if (item.path === '/attendance') {
+            displayLabel = user?.role === 'Employee' ? 'Attendance' : 'Attendance Log';
+          }
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            >
+              <item.icon size={20} />
+              <span>{displayLabel}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">

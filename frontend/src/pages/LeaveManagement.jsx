@@ -46,6 +46,8 @@ export default function LeaveManagement() {
         setSubmitting(true);
         try {
             const token = localStorage.getItem('ys_token');
+            console.log('Submitting leave request:', formData);
+
             const response = await fetch('http://localhost:8000/leaves/', {
                 method: 'POST',
                 headers: {
@@ -55,14 +57,23 @@ export default function LeaveManagement() {
                 body: JSON.stringify(formData)
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
+                const data = await response.json();
+                console.log('Leave created:', data);
                 setShowModal(false);
                 setFormData({ leave_type: 'Annual Leave', start_date: '', end_date: '', reason: '' });
                 await fetchLeaves();
-                alert("Leave application sent successfully!");
+                alert("✓ Leave application sent successfully!");
+            } else {
+                const errorData = await response.json();
+                console.error('Error response:', errorData);
+                alert(`Failed to submit leave: ${errorData.detail || 'Unknown error'}`);
             }
         } catch (error) {
-            alert("Error submitting leave");
+            console.error("Submit error:", error);
+            alert(`Error submitting leave: ${error.message}`);
         } finally {
             setSubmitting(false);
         }

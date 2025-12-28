@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Calendar, UserCheck, History, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import AttendanceCheckIn from '../../components/AttendanceCheckIn';
 
 export default function AttendanceDashboard() {
     const { user } = useAuth();
@@ -27,15 +28,31 @@ export default function AttendanceDashboard() {
         };
         fetchEmployee();
         fetchHistory();
+
+        // Auto-refresh every 10 seconds for employers
+        if (user?.role === 'Employer') {
+            const interval = setInterval(() => {
+                fetchHistory();
+            }, 10000); // Refresh every 10 seconds
+
+            return () => clearInterval(interval);
+        }
     }, [user]);
 
     const fetchHistory = async () => {
         try {
             const response = await fetch('http://localhost:8000/attendance/');
             if (response.ok) {
-                setAttendanceHistory(await response.json());
+                const data = await response.json();
+                console.log('Attendance records fetched:', data);
+                console.log('Total records:', data.length);
+                setAttendanceHistory(data);
+            } else {
+                console.error('Failed to fetch attendance:', response.status);
             }
-        } catch (error) { console.error("Fetch error", error); }
+        } catch (error) {
+            console.error("Fetch error", error);
+        }
     };
 
     const handleAttendanceAction = async (type) => {
@@ -71,10 +88,19 @@ export default function AttendanceDashboard() {
         <div className="page-container">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="page-title">Attendance & Tracking</h1>
-                    <p className="page-subtitle">Manage daily work hours and logs.</p>
+                    <h1 className="page-title">Attendance Log</h1>
+                    <p className="page-subtitle">View and manage employee attendance records.</p>
                 </div>
                 <div className="flex gap-2">
+                    {user?.role === 'Employer' && (
+                        <button
+                            className="btn-secondary flex items-center gap-2"
+                            onClick={fetchHistory}
+                        >
+                            <Clock size={18} />
+                            <span>Refresh</span>
+                        </button>
+                    )}
                     <div className="status-indicator">
                         <span className={`dot ${status === 'Checked In' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                         {status}
@@ -82,118 +108,154 @@ export default function AttendanceDashboard() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Clock In/Out Hero Card */}
-                <div className="card clock-card lg:col-span-1">
-                    <div className="clock-header">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Current Time</span>
-                        <h2 className="text-3xl font-bold text-slate-800 my-2">
-                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </h2>
-                        <span className="text-sm text-primary-600 font-semibold bg-primary-50 px-3 py-1 rounded-full">
-                            {new Date().toDateString()}
-                        </span>
-                    </div>
-
-                    <div className="action-area my-8">
-                        {status === 'Checked Out' ? (
-                            <button
-                                className="btn-circle btn-checkin"
-                                onClick={() => handleAttendanceAction('in')}
-                                disabled={loading}
-                            >
-                                <MapPin size={32} />
-                                <span>Check In</span>
-                            </button>
-                        ) : (
-                            <button
-                                className="btn-circle btn-checkout"
-                                onClick={() => handleAttendanceAction('out')}
-                                disabled={loading}
-                            >
-                                <History size={32} />
-                                <span>Check Out</span>
-                            </button>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Location: Office (IP: 192.168.1.1)
-                    </div>
+            {/* Employee Check-In Section */}
+            {user?.role === 'Employee' && (
+                <div className="mb-8">
+                    <AttendanceCheckIn
+                        employeeId={user?.id || user?._id || employeeId}
+                        employeeName={user?.name}
+                    />
                 </div>
+            )}
 
-                {/* Stats Cards */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="card p-6 flex items-center gap-4 border border-slate-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center">
-                                <UserCheck size={24} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Days Present</p>
-                                <h3 className="text-2xl font-bold text-slate-900">24</h3>
-                                <p className="text-xs text-green-600 font-medium">+2 from last month</p>
-                            </div>
-                        </div>
-                        <div className="card p-6 flex items-center gap-4 border border-slate-100 shadow-sm">
-                            <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                                <Clock size={24} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-slate-500">Avg. Work Hours</p>
-                                <h3 className="text-2xl font-bold text-slate-900">8.5 hrs</h3>
-                            </div>
-                        </div>
+            {/* Attendance table - Only for Employers */}
+            {user?.role === 'Employer' && (
+                <div className="card">
+                    <div className="card-header p-6 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-slate-900">Today's Attendance Log</h3>
+                        <span className="text-sm text-slate-500">{new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
                     </div>
-
-                    <div className="card p-6 flex-1 flex flex-col justify-center items-center border border-slate-100 shadow-sm bg-slate-50/50">
-                        <h4 className="font-semibold text-slate-700 mb-2 w-full text-left">Weekly Insight</h4>
-                        <div className="text-slate-400 text-sm italic">
-                            Activity Graph Placeholder (Chart.js / Recharts)
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="card">
-                <div className="card-header p-4 border-b border-gray-100 flex justify-between">
-                    <h3 className="font-semibold text-gray-800">Attendance Log</h3>
-                </div>
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>Employe</th>
-                            <th>Date</th>
-                            <th>Check In</th>
-                            <th>Check Out</th>
-                            <th>Hours</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {attendanceHistory
-                            .filter(record =>
-                                user?.role === 'Employer' ||
-                                record.employee_name.toLowerCase() === user?.name?.toLowerCase()
-                            )
-                            .map(record => (
-                                <tr key={record._id}>
-                                    <td className="font-medium">{record.employee_name}</td>
-                                    <td>{record.date}</td>
-                                    <td>{record.check_in ? new Date(record.check_in).toLocaleTimeString() : '-'}</td>
-                                    <td>{record.check_out ? new Date(record.check_out).toLocaleTimeString() : '-'}</td>
-                                    <td className="font-mono">{record.work_hours} h</td>
-                                    <td>
-                                        <span className="status-badge status-active">{record.status}</span>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="data-table w-full">
+                            <thead>
+                                <tr className="bg-slate-50">
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Employee Name</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Department</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Check In (IST)</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Check Out (IST)</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Work Hours</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Break Time</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Status</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Location</th>
                                 </tr>
-                            ))}
-                        {(user?.role === 'Employer' ? attendanceHistory.length === 0 : attendanceHistory.filter(r => r.employee_name.toLowerCase() === user?.name?.toLowerCase()).length === 0) && (
-                            <tr><td colSpan="6" className="text-center p-8 text-gray-400">No records found</td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {attendanceHistory
+                                    .filter(record =>
+                                        user?.role === 'Employer' ||
+                                        record.employee_name.toLowerCase() === user?.name?.toLowerCase()
+                                    )
+                                    .map(record => {
+                                        // Helper function to parse UTC datetime properly
+                                        const parseUTCDate = (dateStr) => {
+                                            if (!dateStr) return null;
+                                            // Ensure UTC string has 'Z' suffix
+                                            if (typeof dateStr === 'string' && !dateStr.endsWith('Z')) {
+                                                return new Date(dateStr + 'Z');
+                                            }
+                                            return new Date(dateStr);
+                                        };
+
+                                        // Convert to IST
+                                        const checkInDate = parseUTCDate(record.check_in);
+                                        const checkInIST = checkInDate
+                                            ? checkInDate.toLocaleTimeString('en-IN', {
+                                                timeZone: 'Asia/Kolkata',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })
+                                            : '-';
+
+                                        const checkOutDate = parseUTCDate(record.check_out);
+                                        const checkOutIST = checkOutDate
+                                            ? checkOutDate.toLocaleTimeString('en-IN', {
+                                                timeZone: 'Asia/Kolkata',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })
+                                            : '-';
+
+                                        // Calculate if late (after 9:30 AM IST)
+                                        let isLate = false;
+                                        if (checkInDate) {
+                                            const istHour = parseInt(checkInDate.toLocaleTimeString('en-IN', {
+                                                timeZone: 'Asia/Kolkata',
+                                                hour: '2-digit',
+                                                hour12: false
+                                            }));
+                                            const istMinute = parseInt(checkInDate.toLocaleTimeString('en-IN', {
+                                                timeZone: 'Asia/Kolkata',
+                                                minute: '2-digit'
+                                            }));
+                                            isLate = istHour > 9 || (istHour === 9 && istMinute > 30);
+                                        }
+
+                                        return (
+                                            <tr key={record._id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm">
+                                                            {record.employee_name.split(' ').map(n => n[0]).join('')}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-slate-900">{record.employee_name}</p>
+                                                            {isLate && <span className="text-xs text-orange-600 font-medium">Late</span>}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600">{record.department || 'N/A'}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={16} className="text-green-600" />
+                                                        <span className="font-mono text-slate-900">{checkInIST}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={16} className="text-red-600" />
+                                                        <span className="font-mono text-slate-900">{checkOutIST}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
+                                                        {record.work_hours || 0} hrs
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center text-slate-600">
+                                                    {record.break_time || '0'} min
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${record.status === 'Present' ? 'bg-green-100 text-green-700' :
+                                                        record.status === 'Absent' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                        {record.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1 text-slate-500">
+                                                        <MapPin size={14} />
+                                                        <span className="text-xs">{record.location || 'Office'}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                {(user?.role === 'Employer' ? attendanceHistory.length === 0 : attendanceHistory.filter(r => r.employee_name.toLowerCase() === user?.name?.toLowerCase()).length === 0) && (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
+                                            <UserCheck size={48} className="mx-auto mb-3 opacity-30" />
+                                            <p>No attendance records found for today</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             <style>{`
         .clock-card {

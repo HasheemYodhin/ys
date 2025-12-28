@@ -85,7 +85,7 @@ export default function PayrollDashboard() {
                         </div>
                         <div>
                             <p className="text-sm font-medium text-slate-500">Total Disbursed (YTD)</p>
-                            <h3 className="text-2xl font-bold text-slate-900">${totalPayrollCost.toLocaleString()}</h3>
+                            <h3 className="text-2xl font-bold text-slate-900">₹{totalPayrollCost.toLocaleString('en-IN')}</h3>
                         </div>
                     </div>
                     <div className="card stat-card p-6 flex items-center gap-4">
@@ -110,58 +110,60 @@ export default function PayrollDashboard() {
             )}
 
             <div className="card table-card mt-6">
-                <div className="card-header p-4 border-b border-gray-100">
-                    <h3 className="font-semibold text-gray-800">Recent Transactions</h3>
+                <div className="card-header p-6 border-b border-slate-100">
+                    <h3 className="text-lg font-bold text-slate-900">Recent Transactions</h3>
                 </div>
 
                 {loading ? (
                     <div className="p-8 text-center text-muted">Loading payroll data...</div>
                 ) : (
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Month</th>
-                                <th>Basic</th>
-                                <th>Allowances</th>
-                                <th>Deductions</th>
-                                <th>Net Salary</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {payrollHistory.length === 0 ? (
-                                <tr>
-                                    <td colSpan="8" className="empty-state">No payroll records found. Run payroll to generate data.</td>
+                    <div className="overflow-x-auto">
+                        <table className="data-table w-full">
+                            <thead>
+                                <tr className="bg-slate-50">
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Employee</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Month</th>
+                                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Basic</th>
+                                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Allowances</th>
+                                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Deductions</th>
+                                    <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Net Salary</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Status</th>
+                                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Action</th>
                                 </tr>
-                            ) : (
-                                payrollHistory
-                                    .filter(record =>
-                                        user?.role === 'Employer' ||
-                                        record.employee_name.toLowerCase() === user?.name?.toLowerCase()
-                                    )
-                                    .map((record) => (
-                                        <tr key={record._id}>
-                                            <td className="font-medium text-gray-900">{record.employee_name}</td>
-                                            <td>{record.month} {record.year}</td>
-                                            <td>${record.basic_salary.toLocaleString()}</td>
-                                            <td>${record.total_allowances.toLocaleString()}</td>
-                                            <td className="text-red-500">-${record.total_deductions.toLocaleString()}</td>
-                                            <td className="font-bold text-green-600">${record.net_salary.toLocaleString()}</td>
-                                            <td>
-                                                <span className="status-badge status-active">{record.status}</span>
-                                            </td>
-                                            <td>
-                                                <button className="action-btn text-blue-600" title="Download Payslip">
-                                                    <Download size={16} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {payrollHistory.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="px-6 py-12 text-center text-slate-500">No payroll records found. Run payroll to generate data.</td>
+                                    </tr>
+                                ) : (
+                                    payrollHistory
+                                        .filter(record =>
+                                            user?.role === 'Employer' ||
+                                            record.employee_name.toLowerCase() === user?.name?.toLowerCase()
+                                        )
+                                        .map((record) => (
+                                            <tr key={record._id} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-slate-900">{record.employee_name}</td>
+                                                <td className="px-6 py-4 text-slate-600">{record.month} {record.year}</td>
+                                                <td className="px-6 py-4 text-right text-slate-900">₹{record.basic_salary.toLocaleString('en-IN')}</td>
+                                                <td className="px-6 py-4 text-right text-green-600">₹{record.total_allowances.toLocaleString('en-IN')}</td>
+                                                <td className="px-6 py-4 text-right text-red-600">-₹{record.total_deductions.toLocaleString('en-IN')}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-slate-900">₹{record.net_salary.toLocaleString('en-IN')}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">{record.status}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button className="text-blue-600 hover:text-blue-700 transition-colors" title="Download Payslip">
+                                                        <Download size={18} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 

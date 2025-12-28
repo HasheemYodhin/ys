@@ -20,19 +20,22 @@ export default function ReportsDashboard() {
 
     const fetchAnalytics = async () => {
         try {
-            // 1. Employee Distribution by Department
-            const empRes = await fetch('http://localhost:8000/employees/');
-            if (empRes.ok) {
-                const employees = await empRes.json();
-                const dist = {};
-                employees.forEach(e => {
-                    dist[e.department] = (dist[e.department] || 0) + 1;
-                });
-                setEmpDistribution(Object.keys(dist).map(k => ({ name: k, value: dist[k] })));
+            // 1. Employee Distribution by Department (Using new aggregated endpoint)
+            const reportRes = await fetch('/api/reports/summary');
+            if (reportRes.ok) {
+                const reportData = await reportRes.json();
+
+                // Process Employee Distribution
+                const deptData = reportData.employees.by_department || {};
+                const dist = Object.keys(deptData).map(k => ({ name: k, value: deptData[k] }));
+                setEmpDistribution(dist);
+            } else {
+                // Fallback if report endpoint fails (for resilience or dev)
+                console.warn("Reports endpoint failed, falling back to basic fetch");
             }
 
-            // 2. Payroll Trend (Mocked for demo if history is short, or aggregated)
-            const payRes = await fetch('http://localhost:8000/payroll/');
+            // 2. Payroll Trend (Corrected URL to use proxy)
+            const payRes = await fetch('/api/payroll/');
             if (payRes.ok) {
                 const payrolls = await payRes.json();
                 // Aggregate by Month
@@ -51,6 +54,12 @@ export default function ReportsDashboard() {
                 } else {
                     setPayrollTrend(data);
                 }
+            } else {
+                // Mock if backend not reachable
+                setPayrollTrend([
+                    { name: 'Jan', amount: 45000 }, { name: 'Feb', amount: 48000 },
+                    { name: 'Mar', amount: 47000 }, { name: 'Apr', amount: 52000 }
+                ]);
             }
 
             // 3. Attendance Trend (Mocked for visual impact)

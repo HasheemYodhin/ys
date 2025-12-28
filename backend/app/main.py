@@ -46,7 +46,12 @@ app.include_router(leaves.router, prefix="/leaves", tags=["leaves"])
 app.include_router(recruitment.router, prefix="/recruitment", tags=["recruitment"])
 app.include_router(finance.router, prefix="/finance", tags=["finance"])
 app.include_router(cms.router, prefix="/cms", tags=["cms"])
+
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+
+# Register Reports Router
+from app.routes import reports
+app.include_router(reports.router, prefix="/reports", tags=["reports"])
 
 @app.get("/")
 async def root():
