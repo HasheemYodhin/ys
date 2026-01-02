@@ -31,6 +31,12 @@ class UserBase(BaseModel):
     dob: Optional[str] = None
     bio: Optional[str] = None
     emergency_contact: Optional[str] = None
+    # New fields
+    bank_details: Optional[dict] = None # {account_name, account_number, bank_name, ifsc}
+    education: Optional[list] = None # [{degree, institution, year}]
+    social_links: Optional[dict] = None # {linkedin, twitter, website}
+    two_factor_enabled: bool = False
+    password_reset_requested: bool = False
     is_active: bool = True
     is_superuser: bool = False
 
@@ -44,6 +50,11 @@ class UserUpdate(BaseModel):
     dob: Optional[str] = None
     bio: Optional[str] = None
     emergency_contact: Optional[str] = None
+    bank_details: Optional[dict] = None
+    education: Optional[list] = None
+    social_links: Optional[dict] = None
+    two_factor_enabled: Optional[bool] = None
+    password_reset_requested: Optional[bool] = None
 
 class UserCreate(UserBase):
     password: str

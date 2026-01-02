@@ -23,6 +23,9 @@ async def create_leave_request(
     leave_dict.update({
         "user_id": str(current_user["_id"]),
         "employee_name": current_user.get("full_name", current_user.get("name", "Unknown")),
+        "department": current_user.get("department"),
+        "designation": current_user.get("designation"),
+        "profile_photo": current_user.get("profile_photo"),
         "status": LeaveStatus.PENDING,
         "applied_on": datetime.now().strftime("%Y-%m-%d"),
         "comment": None

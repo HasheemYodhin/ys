@@ -90,8 +90,7 @@ async def update_profile(
     updated_user = await db["users"].find_one({"_id": current_user["_id"]})
     if updated_user:
         updated_user["_id"] = str(updated_user["_id"])
-    if updated_user:
-        updated_user["_id"] = str(updated_user["_id"])
+    return updated_user
 
 @router.post("/forgot-password")
 async def forgot_password(request: PasswordResetRequest, db=Depends(get_database)):
@@ -130,4 +129,89 @@ async def reset_password(request: PasswordResetConfirm, db=Depends(get_database)
     )
     
     return {"message": "Password updated successfully"}
+
+@router.post("/request-password-reset")
+async def request_password_reset(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    await db["users"].update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"password_reset_requested": True}}
+    )
+    # Mocking notification to employer
+    print(f"NOTIFICATION: User {current_user['email']} requested a password reset.")
+    return {"message": "Reset request sent to your employer"}
+
+@router.post("/toggle-2fa")
+async def toggle_2fa(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    new_status = not current_user.get("two_factor_enabled", False)
+    await db["users"].update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"two_factor_enabled": new_status}}
+    )
+    return {
+        "message": f"2FA {'enabled' if new_status else 'disabled'} successfully",
+        "two_factor_enabled": new_status
+    }
+
+@router.get("/notifications")
+async def get_notifications(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    if current_user.get("role") != "Employer":
+        return [] # Non-employers don't see system-wide alerts
+        
+    notifications = []
+    
+    # 1. Password Reset Requests
+    reset_requests = await db["users"].find(
+        {"password_reset_requested": True}
+    ).to_list(length=100)
+    
+    for req in reset_requests:
+        notifications.append({
+            "id": str(req["_id"]),
+            "type": "password_reset",
+            "user_name": req.get("full_name") or req.get("name") or req.get("email"),
+            "email": req.get("email"),
+            "message": f"Requested a password reset",
+            "created_at": "Just now" # Could be enhanced with timestamps
+        })
+        
+    # 2. Mock System Updates for demo
+    notifications.append({
+        "id": "sys_1",
+        "type": "system",
+        "user_name": "System",
+        "email": "admin@ys.com",
+        "message": "The annual HR compliance policy has been updated for 2026.",
+        "created_at": "2 hours ago"
+    })
+        
+    return notifications
+
+@router.post("/notifications/{user_id}/resolve")
+async def resolve_notification(
+    user_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
+):
+    if current_user.get("role") != "Employer":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    from bson import ObjectId
+    result = await db["users"].update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password_reset_requested": False}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found or already resolved")
+        
+    return {"message": "Notification resolved successfully"}
 

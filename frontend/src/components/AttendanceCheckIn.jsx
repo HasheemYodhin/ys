@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Clock, LogIn, LogOut, Loader, Calendar } from 'lucide-react';
 
-export default function AttendanceCheckIn({ employeeId, employeeName }) {
+export default function AttendanceCheckIn({ employeeId, employeeName, variant = 'standard' }) {
     const [status, setStatus] = useState('checked_out');
     const [loading, setLoading] = useState(false);
     const [location, setLocation] = useState(null);
@@ -198,66 +198,67 @@ export default function AttendanceCheckIn({ employeeId, employeeName }) {
     };
 
     return (
-        <div className="simple-attendance-container">
-            {/* Main Card */}
-            <div className="attendance-card">
+        <div className={`premium-attendance-v2 variant-${variant}`}>
+            {/* Main Hero Card Section */}
+            <div className="attendance-main-v2">
                 {/* Time Display */}
-                <div className="time-section">
-                    <div className="time-display">
-                        {currentTime.toLocaleTimeString('en-IN', {
-                            timeZone: 'Asia/Kolkata',
+                <div className="time-v2 text-center mb-6">
+                    <div className="current-time-v2">
+                        {currentTime.toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                             second: '2-digit',
                             hour12: false
                         })}
                     </div>
-                    <div className="date-display">
-                        <Calendar size={16} />
-                        {currentTime.toLocaleDateString('en-IN', {
-                            timeZone: 'Asia/Kolkata',
-                            weekday: 'long',
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                        })}
+                    <div className="current-date-v2 flex items-center justify-center gap-2 mt-2">
+                        <Calendar size={14} className="text-teal-400" />
+                        <span>
+                            {currentTime.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long'
+                            })}
+                        </span>
                     </div>
                 </div>
 
-                {/* Status Badge */}
-                <div className={`status-badge ${status === 'checked_in' ? 'checked-in' : 'checked-out'}`}>
-                    <div className="status-dot"></div>
-                    {status === 'checked_in' ? 'Checked In' : 'Checked Out'}
+                {/* Status Indicator */}
+                <div className="flex justify-center mb-6">
+                    <div className={`status-pill-v2 ${status === 'checked_in' ? 'in' : 'out'}`}>
+                        <div className="status-dot-v2"></div>
+                        <span>{status === 'checked_in' ? 'On Duty' : 'Off Duty'}</span>
+                    </div>
                 </div>
 
-                {/* Action Button */}
-                <div className="button-section">
+                {/* Primary Action Button */}
+                <div className="action-v2 mb-8">
                     {status === 'checked_out' ? (
                         <button
-                            className="action-btn check-in-btn"
+                            className="btn-check-in-v2 w-full"
                             onClick={handleCheckIn}
                             disabled={loading || !actualEmployeeId}
                         >
                             {loading ? (
-                                <Loader className="spin-icon" size={24} />
+                                <Loader className="spin-v2" size={20} />
                             ) : (
                                 <>
-                                    <LogIn size={24} />
+                                    <LogIn size={22} />
                                     <span>Check In</span>
                                 </>
                             )}
                         </button>
                     ) : (
                         <button
-                            className="action-btn check-out-btn"
+                            className="btn-check-out-v2 w-full"
                             onClick={handleCheckOut}
                             disabled={loading || !actualEmployeeId}
                         >
                             {loading ? (
-                                <Loader className="spin-icon" size={24} />
+                                <Loader className="spin-v2" size={20} />
                             ) : (
                                 <>
-                                    <LogOut size={24} />
+                                    <LogOut size={22} />
                                     <span>Check Out</span>
                                 </>
                             )}
@@ -265,270 +266,216 @@ export default function AttendanceCheckIn({ employeeId, employeeName }) {
                     )}
                 </div>
 
-                {/* Location */}
+                {/* Metrics Stack - Only show in standard mode, hide in dashboard hero */}
+                {variant !== 'hero' && (
+                    <div className="metrics-stack-v2">
+                        <div className="metric-item-v2 glass-mini">
+                            <div className="metric-icon-v2 in">
+                                <Clock size={18} />
+                            </div>
+                            <div className="metric-info-v2">
+                                <span className="metric-lbl">Check In</span>
+                                <span className="metric-val">{todayRecord?.check_in ? formatTime(todayRecord.check_in) : '--:--'}</span>
+                            </div>
+                        </div>
+
+                        <div className="metric-item-v2 glass-mini">
+                            <div className="metric-icon-v2 out">
+                                <Clock size={18} />
+                            </div>
+                            <div className="metric-info-v2">
+                                <span className="metric-lbl">Check Out</span>
+                                <span className="metric-val">{todayRecord?.check_out ? formatTime(todayRecord.check_out) : '--:--'}</span>
+                            </div>
+                        </div>
+
+                        <div className="metric-item-v2 glass-mini">
+                            <div className="metric-icon-v2 hrs">
+                                <Clock size={18} />
+                            </div>
+                            <div className="metric-info-v2">
+                                <span className="metric-lbl">Duration</span>
+                                <span className="metric-val">{calculateWorkHours()}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Tiny Location Footer */}
                 {location && (
-                    <div className="location-display">
-                        <MapPin size={14} />
-                        <span>Location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
+                    <div className="loc-footer-v2 mt-8">
+                        <MapPin size={10} />
+                        <span>Loc: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
                     </div>
                 )}
             </div>
 
-            {/* Summary Cards */}
-            {todayRecord && (
-                <div className="summary-section">
-                    <div className="summary-card">
-                        <div className="summary-icon check-in-icon">
-                            <Clock size={20} />
-                        </div>
-                        <div className="summary-content">
-                            <div className="summary-label">Check In</div>
-                            <div className="summary-value">{todayRecord.check_in ? formatTime(todayRecord.check_in) : '-'}</div>
-                        </div>
-                    </div>
-
-                    <div className="summary-card">
-                        <div className="summary-icon check-out-icon">
-                            <Clock size={20} />
-                        </div>
-                        <div className="summary-content">
-                            <div className="summary-label">Check Out</div>
-                            <div className="summary-value">{todayRecord.check_out ? formatTime(todayRecord.check_out) : '-'}</div>
-                        </div>
-                    </div>
-
-                    <div className="summary-card">
-                        <div className="summary-icon work-hours-icon">
-                            <Clock size={20} />
-                        </div>
-                        <div className="summary-content">
-                            <div className="summary-label">Work Hours</div>
-                            <div className="summary-value">{calculateWorkHours()}</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <style>{`
-                .simple-attendance-container {
-                    max-width: 800px;
+                .premium-attendance-v2 {
+                    width: 100%;
+                    max-width: 420px;
                     margin: 0 auto;
                 }
 
-                .attendance-card {
+                .variant-standard .attendance-main-v2 {
                     background: white;
-                    border-radius: 16px;
+                    border-radius: 32px;
                     padding: 40px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                    border: 1px solid #e2e8f0;
-                    margin-bottom: 24px;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+                    border: 1px solid #f1f5f9;
                 }
 
-                .time-section {
-                    text-align: center;
-                    margin-bottom: 32px;
+                .attendance-main-v2 {
+                    padding: 15px;
                 }
 
-                .time-display {
+                .current-time-v2 {
                     font-size: 3.5rem;
-                    font-weight: 700;
-                    color: #1e293b;
-                    letter-spacing: -0.02em;
-                    margin-bottom: 8px;
+                    font-weight: 800;
+                    letter-spacing: -2px;
+                    line-height: 1;
+                    font-family: 'Inter', sans-serif;
                 }
 
-                .date-display {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    font-size: 1rem;
-                    color: #64748b;
-                }
+                /* Variant Specific Colors */
+                .variant-hero .current-time-v2 { color: white; }
+                .variant-standard .current-time-v2 { color: #0f172a; }
 
-                .status-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 20px;
-                    border-radius: 20px;
-                    font-size: 0.875rem;
+                .current-date-v2 {
+                    color: #94a3b8;
+                    font-size: 0.9rem;
                     font-weight: 600;
-                    margin: 0 auto 32px;
+                }
+
+                .status-pill-v2 {
                     display: flex;
-                    width: fit-content;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 16px;
+                    border-radius: 100px;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    background: rgba(0,0,0,0.05);
+                    border: 1px solid rgba(0,0,0,0.05);
                 }
 
-                .status-badge.checked-in {
-                    background: #dcfce7;
-                    color: #166534;
+                .variant-hero .status-pill-v2 {
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.05);
                 }
 
-                .status-badge.checked-out {
-                    background: #f1f5f9;
-                    color: #475569;
-                }
+                .status-pill-v2.in { color: #2dd4bf; }
+                .status-pill-v2.out { color: #94a3b8; }
 
-                .status-dot {
-                    width: 8px;
-                    height: 8px;
+                .status-dot-v2 {
+                    width: 6px;
+                    height: 6px;
                     border-radius: 50%;
-                    animation: pulse 2s infinite;
+                    background: currentColor;
+                    box-shadow: 0 0 10px currentColor;
                 }
 
-                .checked-in .status-dot {
-                    background: #22c55e;
-                }
-
-                .checked-out .status-dot {
-                    background: #94a3b8;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-
-                .button-section {
-                    display: flex;
-                    justify-content: center;
-                    margin-bottom: 24px;
-                }
-
-                .action-btn {
+                .btn-check-in-v2, .btn-check-out-v2 {
                     display: flex;
                     align-items: center;
+                    justify-content: center;
                     gap: 12px;
-                    padding: 16px 48px;
-                    border-radius: 12px;
+                    padding: 18px;
+                    border-radius: 20px;
                     border: none;
-                    font-size: 1.125rem;
-                    font-weight: 600;
+                    font-size: 1.1rem;
+                    font-weight: 800;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
                     color: white;
                 }
 
-                .check-in-btn {
-                    background: #22c55e;
+                .btn-check-in-v2 {
+                    background: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%);
+                    box-shadow: 0 10px 20px rgba(45, 212, 191, 0.25);
                 }
 
-                .check-in-btn:hover:not(:disabled) {
-                    background: #16a34a;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+                .btn-check-out-v2 {
+                    background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
+                    box-shadow: 0 10px 20px rgba(244, 63, 94, 0.25);
                 }
 
-                .check-out-btn {
-                    background: #ef4444;
+                .btn-check-in-v2:hover, .btn-check-out-v2:hover {
+                    transform: translateY(-4px) scale(1.02);
                 }
 
-                .check-out-btn:hover:not(:disabled) {
-                    background: #dc2626;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-                }
-
-                .action-btn:disabled {
+                .btn-check-in-v2:disabled, .btn-check-out-v2:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
+                    transform: none;
                 }
 
-                .spin-icon {
-                    animation: spin 1s linear infinite;
+                /* Metrics Stack Styles */
+                .metrics-stack-v2 {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
                 }
 
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
+                .metric-item-v2.glass-mini {
+                    background: rgba(0, 0, 0, 0.03);
+                    border: 1px solid rgba(0, 0, 0, 0.05);
+                    border-radius: 20px;
+                    padding: 14px 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    transition: all 0.2s;
                 }
 
-                .location-display {
+                .variant-hero .metric-item-v2.glass-mini {
+                    background: rgba(255, 255, 255, 0.04);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .metric-item-v2:hover {
+                    background: rgba(0, 0, 0, 0.06);
+                    transform: translateX(5px);
+                }
+                
+                .variant-hero .metric-item-v2:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                }
+
+                .metric-icon-v2 {
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 6px;
-                    font-size: 0.75rem;
-                    color: #94a3b8;
-                }
-
-                .summary-section {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 16px;
-                }
-
-                .summary-card {
-                    background: white;
-                    border-radius: 12px;
-                    padding: 20px;
-                    border: 1px solid #e2e8f0;
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-
-                .summary-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-center;
                     flex-shrink: 0;
                 }
 
-                .check-in-icon {
-                    background: #dcfce7;
-                    color: #166534;
+                .metric-icon-v2.in { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; }
+                .metric-icon-v2.out { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
+                .metric-icon-v2.hrs { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+
+                .metric-info-v2 { display: flex; flex-direction: column; }
+                .metric-lbl { font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+                .metric-val { font-size: 1rem; font-weight: 800; }
+                
+                .variant-hero .metric-val { color: white; }
+                .variant-standard .metric-val { color: #0f172a; }
+
+                .loc-footer-v2 {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 5px;
+                    font-size: 0.65rem;
+                    color: #94a3b8;
+                    font-weight: 600;
                 }
 
-                .check-out-icon {
-                    background: #fee2e2;
-                    color: #991b1b;
-                }
-
-                .work-hours-icon {
-                    background: #dbeafe;
-                    color: #1e40af;
-                }
-
-                .summary-content {
-                    flex: 1;
-                }
-
-                .summary-label {
-                    font-size: 0.75rem;
-                    color: #64748b;
-                    margin-bottom: 4px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .summary-value {
-                    font-size: 1.25rem;
-                    font-weight: 700;
-                    color: #1e293b;
-                }
-
-                @media (max-width: 768px) {
-                    .attendance-card {
-                        padding: 24px;
-                    }
-
-                    .time-display {
-                        font-size: 2.5rem;
-                    }
-
-                    .action-btn {
-                        padding: 14px 32px;
-                        font-size: 1rem;
-                    }
-
-                    .summary-section {
-                        grid-template-columns: 1fr;
-                    }
-                }
+                .spin-v2 { animation: rotate 1s linear infinite; }
+                @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </div>
     );

@@ -1,13 +1,14 @@
 import Sidebar from './Sidebar';
-import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, notifications } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -22,10 +23,53 @@ const Header = () => {
       </div>
 
       <div className="header-actions">
-        <button className="icon-btn">
-          <Bell size={20} />
-          <span className="badge">3</span>
-        </button>
+        <div className="notification-container">
+          <button className="icon-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            <Bell size={20} />
+            {notifications.length > 0 && <span className="badge">{notifications.length}</span>}
+          </button>
+
+          {showNotifications && (
+            <div className="notifications-dropdown glass">
+              <div className="dropdown-header">
+                <h3>Notifications</h3>
+                <span className="count">{notifications.length} New</span>
+              </div>
+              <div className="dropdown-divider"></div>
+              <div className="notifications-list">
+                {notifications.length > 0 ? (
+                  notifications.map((notif) => (
+                    <Link
+                      key={notif.id}
+                      to="/notifications"
+                      className="notification-item"
+                      onClick={() => setShowNotifications(false)}
+                    >
+                      <div className="notif-icon reset">
+                        <LogOut size={16} />
+                      </div>
+                      <div className="notif-content">
+                        <p className="notif-text">
+                          <strong>{notif.user_name}</strong> {notif.message}
+                        </p>
+                        <span className="notif-time">{notif.created_at}</span>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="notif-empty">
+                    <p>No new notifications</p>
+                  </div>
+                )}
+              </div>
+              <div className="dropdown-divider"></div>
+              <Link to="/notifications" className="dropdown-view-all" onClick={() => setShowNotifications(false)}>
+                View All Notifications
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+          )}
+        </div>
 
         <div className="profile-container">
           <div
@@ -295,6 +339,107 @@ const Header = () => {
         .logout-item:hover {
           background: #fff1f2;
           color: #be123c;
+        }
+
+        .notification-container {
+          position: relative;
+        }
+
+        .notifications-dropdown {
+          position: absolute;
+          top: calc(100% + 14px);
+          right: 0;
+          width: 320px;
+          background: white;
+          border-radius: 20px;
+          box-shadow: var(--shadow-float);
+          border: 1px solid var(--border-subtle);
+          overflow: hidden;
+          padding: 12px;
+          animation: slideDown 0.2s ease-out;
+          z-index: 1000;
+        }
+
+        .notifications-dropdown .dropdown-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+        }
+
+        .notifications-dropdown .dropdown-header h3 {
+          font-size: 1rem;
+          font-weight: 800;
+          margin: 0;
+        }
+
+        .notifications-dropdown .count {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--primary-600);
+          background: var(--primary-50);
+          padding: 4px 10px;
+          border-radius: 99px;
+        }
+
+        .notifications-list {
+          max-height: 400px;
+          overflow-y: auto;
+        }
+
+        .notification-item {
+          display: flex;
+          gap: 12px;
+          padding: 16px;
+          border-radius: 12px;
+          transition: all 0.2s;
+          cursor: pointer;
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .notification-item:hover {
+          background: var(--slate-50);
+        }
+
+        .notif-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .notif-icon.reset {
+          background: #fff1f2;
+          color: #e11d48;
+        }
+
+        .notif-content {
+          flex: 1;
+        }
+
+        .notif-text {
+          font-size: 0.85rem;
+          margin: 0;
+          line-height: 1.4;
+          color: var(--slate-700);
+        }
+
+        .notif-time {
+          font-size: 0.75rem;
+          color: var(--slate-400);
+          margin-top: 4px;
+          display: block;
+        }
+
+        .notif-empty {
+          padding: 40px 20px;
+          text-align: center;
+          color: var(--slate-400);
+          font-size: 0.9rem;
         }
       `}</style>
     </header>

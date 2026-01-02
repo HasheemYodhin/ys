@@ -23,17 +23,17 @@ import AddEmployeeModal from './Employees/AddEmployeeModal';
 import AttendanceCheckIn from '../components/AttendanceCheckIn';
 
 const StatCard = ({ title, value, change, trend, icon: Icon, colorClass }) => (
-  <div className="card stat-card ">
+  <div className="card stat-card glass animate-slide-up">
     <div className="flex justify-between items-start mb-4">
       <div className={`icon-wrapper ${colorClass}`}>
-        <Icon size={24} />
+        <Icon size={22} />
       </div>
       <div className={`trend-badge ${trend === 'up' ? 'trend-up' : 'trend-down'}`}>
-        {trend === 'up' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-        {change}
+        {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+        <span>{change}</span>
       </div>
     </div>
-    <div>
+    <div className="stat-content">
       <h3 className="stat-value">{value}</h3>
       <p className="stat-title">{title}</p>
     </div>
@@ -41,13 +41,28 @@ const StatCard = ({ title, value, change, trend, icon: Icon, colorClass }) => (
 );
 
 const QuickAction = ({ icon: Icon, label, color, onClick }) => (
-  <button className="quick-action-btn" onClick={onClick}>
-    <div className="action-icon" style={{ backgroundColor: color }}>
-      <Icon size={20} />
+  <button className="quick-action-btn glass-mini group" onClick={onClick}>
+    <div className="action-icon" style={{ background: color }}>
+      <Icon size={18} />
     </div>
-    <span>{label}</span>
+    <span className="font-bold text-slate-700 group-hover:text-primary-600 transition-colors">{label}</span>
   </button>
 );
+
+const GlassTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="glass p-4 border border-white/40 shadow-xl backdrop-blur-xl rounded-2xl">
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: payload[0].color || payload[0].fill }}></div>
+          <p className="text-xl font-black text-slate-900">{payload[0].value}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -64,40 +79,38 @@ export default function Dashboard() {
     active_jobs: 0,
     on_leave: 0,
     performance: 0,
-    attendance: { present: 0, absent: 0, on_leave: 0 }
+    attendance: { present: 0, absent: 0, on_leave: 0 },
+    live_on_duty: [],
+    pending_expenses: 0,
+    new_candidates: 0,
+    pending_leaves: 0,
+    headcount_graph: [],
+    dept_distribution: [],
+    attendance_trend: []
   });
 
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (filters.department !== 'all') params.append('department', filters.department);
-    if (filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
-    if (filters.status !== 'all') params.append('status', filters.status);
+  const fetchStats = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.department !== 'all') params.append('department', filters.department);
+      if (filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
+      if (filters.status !== 'all') params.append('status', filters.status);
 
-    const queryString = params.toString();
-    const url = `/api/dashboard/stats${queryString ? '?' + queryString : ''}`;
-
-    fetch(url)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('Dashboard stats received:', data);
+      const queryString = params.toString();
+      const response = await fetch(`/api/dashboard/stats${queryString ? '?' + queryString : ''}`);
+      if (response.ok) {
+        const data = await response.json();
         setStats(data);
-      })
-      .catch(err => {
-        console.error("Failed to fetch dashboard stats", err);
-        setStats(prev => ({
-          ...prev,
-          headcount_graph: [],
-          dept_distribution: [],
-          attendance_trend: [],
-          recent_hires: [],
-          recent_activities: []
-        }));
-      });
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // 60s Real-time polling
+    return () => clearInterval(interval);
   }, [filters]);
 
   const firstName = user?.name?.split(' ')[0] || 'User';
@@ -225,7 +238,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats Grid */}
-      <div className="stats-grid">
+      <div className="stats-grid mb-8">
         <StatCard
           title="Total Employees"
           value={stats.total_employees}
@@ -244,7 +257,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="On Leave"
-          value={stats.on_leave}
+          value={stats.on_leave || 0}
           change="Today"
           trend="down"
           icon={Clock}
@@ -258,437 +271,221 @@ export default function Dashboard() {
           icon={Zap}
           colorClass="bg-green-50 text-green-600"
         />
-        <StatCard
-          title="New Joiners (1 Mo)"
-          value={stats.new_joiners || 0}
-          change="Latest"
-          trend="up"
-          icon={UserPlus}
-          colorClass="bg-cyan-50 text-cyan-600"
-        />
-        <StatCard
-          title="Upcoming Birthdays"
-          value={stats.upcoming_birthdays || 0}
-          change="This Week"
-          trend="up"
-          icon={Calendar}
-          colorClass="bg-pink-50 text-pink-600"
-        />
-        <StatCard
-          title="Mobile App Users"
-          value={stats.mobile_users || 0}
-          change="Active"
-          trend="up"
-          icon={Smartphone}
-          colorClass="bg-violet-50 text-violet-600"
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={stats.pending_expenses || 0}
-          change="To Review"
-          trend="down"
-          icon={FileText}
-          colorClass="bg-amber-50 text-amber-600"
-        />
       </div>
 
-      {/* Headcount Graph Section */}
-      <div className="card p-6 mb-8">
-        <h2 className="card-title mb-4">Headcount Growth</h2>
-        <div style={{ width: '100%', height: 300 }}>
-          {stats.headcount_graph && stats.headcount_graph.length > 0 ? (
-            <ResponsiveContainer>
-              <AreaChart data={stats.headcount_graph}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
-              <div className="text-center">
-                <p className="text-sm">Loading headcount data...</p>
+      <div className="dashboard-main-grid">
+        {/* Left Side: Analytics & Operation */}
+        <div className="dash-left-column">
+          {/* Headcount Graph */}
+          <div className="card glass p-6 mb-6">
+            <h2 className="card-title mb-6">Headcount Growth</h2>
+            <div style={{ width: '100%', height: 300 }}>
+              {stats.headcount_graph && stats.headcount_graph.length > 0 ? (
+                <ResponsiveContainer>
+                  <AreaChart data={stats.headcount_graph}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <Tooltip content={<GlassTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }} />
+                    <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" animationDuration={1500} dot={{ fill: '#6366f1', stroke: '#fff', strokeWidth: 2, r: 4 }} activeDot={{ r: 8, strokeWidth: 0, fill: '#6366f1' }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400">Loading headcount data...</div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Dept Distribution */}
+            <div className="card glass p-6 relative">
+              <h2 className="card-title mb-6">Department Distribution</h2>
+              <div style={{ width: '100%', height: 260 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.dept_distribution || []}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={95}
+                      paddingAngle={5}
+                      dataKey="value"
+                      animationDuration={1500}
+                    >
+                      {(stats.dept_distribution || []).map((entry, index) => {
+                        const colors = ['#6366f1', '#2dd4bf', '#f43f5e', '#fbbf24', '#8b5cf6', '#ec4899'];
+                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="rgba(255,255,255,0.2)" strokeWidth={2} />;
+                      })}
+                    </Pie>
+                    <Tooltip content={<GlassTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Total Overlay */}
+                <div className="absolute top-[60%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                  <span className="block text-2xl font-black text-slate-900 leading-none">
+                    {stats.dept_distribution?.reduce((acc, curr) => acc + curr.value, 0) || 0}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Department Distribution */}
-        <div className="card p-6">
-          <h2 className="card-title mb-4">Department Distribution</h2>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={stats.dept_distribution || []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {(stats.dept_distribution || []).map((entry, index) => {
-                    const colors = ['#4f46e5', '#06b6d4', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6'];
-                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                  })}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Attendance Trend */}
-        <div className="card p-6">
-          <h2 className="card-title mb-4">Attendance Trend (7 Days)</h2>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer>
-              <LineChart data={stats.attendance_trend || []}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ fill: '#10b981', r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="content-grid">
-        {/* Left Column */}
-        <div className="main-section flex flex-col gap-6">
-
-          {/* Activity Feed */}
-          <div className="card p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="card-title">Recent Activity</h2>
-              <button className="text-sm font-semibold text-primary-600 hover:text-primary-700">View All</button>
+            {/* Attendance Trend */}
+            <div className="card glass p-6">
+              <h2 className="card-title mb-6">Attendance Trend</h2>
+              <div style={{ width: '100%', height: 260 }}>
+                <ResponsiveContainer>
+                  <LineChart data={stats.attendance_trend || []}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <Tooltip content={<GlassTooltip />} />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#2dd4bf"
+                      strokeWidth={4}
+                      dot={{ fill: '#2dd4bf', stroke: '#fff', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 8, strokeWidth: 0, fill: '#2dd4bf' }}
+                      animationDuration={1500}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="flex flex-col gap-6">
+          </div>
+
+          {/* Activity Wall */}
+          <div className="card glass p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="card-title">Live Activity Wall</h2>
+              <button className="text-secondary">View Stream</button>
+            </div>
+            <div className="space-y-6">
               {(stats.recent_activities && stats.recent_activities.length > 0) ? (
                 stats.recent_activities.map((activity, idx) => (
-                  <div key={idx} className="flex gap-4 items-start">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-2 shrink-0 ${activity.color}`}></div>
-                    <div>
+                  <div key={idx} className="activity-item-v2 flex gap-4 items-start">
+                    <div className={`activity-dot ${activity.color?.replace('bg-', '')}`}></div>
+                    <div className="flex-1">
                       <p className="text-sm text-slate-700">
                         <span className="font-bold text-slate-900">{activity.user}</span> {activity.action}
                       </p>
                       <span className="text-xs text-slate-400 font-medium">{activity.time}</span>
                     </div>
+                    <ChevronRight size={14} className="text-slate-300" />
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400">
-                  <p className="text-sm">No recent activities</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Team Overview */}
-          <div className="card p-6">
-            <h2 className="card-title mb-6">Team Overview</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                    <Users size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Active</p>
-                    <p className="text-xl font-bold text-slate-900">{stats.attendance.present}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
-                    <Clock size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">On Leave</p>
-                    <p className="text-xl font-bold text-slate-900">{stats.on_leave}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
-                    <Briefcase size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Open Jobs</p>
-                    <p className="text-xl font-bold text-slate-900">{stats.active_jobs}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center">
-                    <UserPlus size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">New Hires</p>
-                    <p className="text-xl font-bold text-slate-900">{stats.new_joiners || 0}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Department Summary */}
-          <div className="card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="card-title">Department Summary</h2>
-            </div>
-            <div className="space-y-4">
-              {(stats.dept_distribution || []).slice(0, 5).map((dept, idx) => {
-                const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 'bg-green-500'];
-                const percentage = stats.total_employees ? ((dept.value / stats.total_employees) * 100).toFixed(0) : 0;
-                return (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${colors[idx % colors.length]}`}></div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-semibold text-slate-700">{dept.name}</span>
-                        <span className="text-xs font-bold text-slate-900">{dept.value}</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${colors[idx % colors.length]}`}
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Recent Hires */}
-          <div className="card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="card-title">Recent Hires</h2>
-              <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
-                Last 30 Days
-              </span>
-            </div>
-            <div className="space-y-3">
-              {(stats.recent_hires && stats.recent_hires.length > 0) ? (
-                stats.recent_hires.map((hire, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm">
-                      {hire.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{hire.name}</p>
-                      <p className="text-xs text-slate-500">{hire.role} • {hire.dept}</p>
-                    </div>
-                    <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{hire.days_ago}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-400">
-                  <UserPlus size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No new hires in the last 30 days</p>
-                </div>
+                <p className="text-center py-8 text-slate-400 text-sm">No activity recorded today.</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="side-section flex flex-col gap-6">
+        {/* Right Side: Operations Hub & Live Wall */}
+        <div className="dash-right-column space-y-6">
+          {/* Approval Hub - High Alert Feature */}
+          <div className="card glass border-l-4 border-primary-500 p-6">
+            <h2 className="card-title mb-6 flex items-center gap-2">
+              <Zap size={20} className="text-primary-500" />
+              Approval Hub
+            </h2>
+            <div className="space-y-4">
+              <div className="hub-item glass-mini p-4 flex justify-between items-center cursor-pointer hover:translate-x-1 transition-transform" onClick={() => navigate('/leave')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase letter-spacing-1">Leave Requests</p>
+                    <p className="text-lg font-black text-slate-800">{stats.pending_leaves || 0} Pending</p>
+                  </div>
+                </div>
+                <ArrowUpRight size={18} className="text-slate-300" />
+              </div>
 
-          {/* Quick Actions */}
-          <div className="card p-6">
-            <h2 className="card-title mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
+              <div className="hub-item glass-mini p-4 flex justify-between items-center cursor-pointer hover:translate-x-1 transition-transform" onClick={() => navigate('/recruitment')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase letter-spacing-1">Candidates</p>
+                    <p className="text-lg font-black text-slate-800">{stats.new_candidates || 0} To Review</p>
+                  </div>
+                </div>
+                <ArrowUpRight size={18} className="text-slate-300" />
+              </div>
+
+              <div className="hub-item glass-mini p-4 flex justify-between items-center cursor-pointer hover:translate-x-1 transition-transform">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+                    <DollarSign size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase letter-spacing-1">Expenses</p>
+                    <p className="text-lg font-black text-slate-800">{stats.pending_expenses || 0} Pending</p>
+                  </div>
+                </div>
+                <ArrowUpRight size={18} className="text-slate-300" />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Action Dock */}
+          <div className="card glass p-6">
+            <h2 className="card-title mb-6">Management Dock</h2>
+            <div className="grid grid-cols-2 gap-4">
               <QuickAction icon={UserPlus} label="New Hire" color="#eff6ff" onClick={() => setIsModalOpen(true)} />
               <QuickAction icon={Calendar} label="Time Off" color="#fff7ed" onClick={() => navigate('/leave')} />
-              <QuickAction icon={Briefcase} label="Post Job" color="#faf5ff" onClick={() => navigate('/recruitment')} />
+              <QuickAction icon={Briefcase} label="Job Post" color="#faf5ff" onClick={() => navigate('/recruitment')} />
               <QuickAction icon={FileText} label="Reports" color="#f0fdf4" onClick={() => navigate('/reports')} />
             </div>
           </div>
 
-          {/* Leave Balance */}
-          <div className="card p-6">
-            <h2 className="card-title mb-4">Leave Balance</h2>
-            <div className="flex flex-col gap-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-slate-600">Paid Leave</span>
-                  <span className="text-sm font-bold text-slate-900">12/20</span>
-                </div>
-                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary-500" style={{ width: '60%', boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}></div>
-                </div>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-slate-600">Sick Leave</span>
-                  <span className="text-sm font-bold text-slate-900">8/12</span>
-                </div>
-                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500" style={{ width: '75%', boxShadow: '0 0 10px rgba(34,197,94,0.4)' }}></div>
-                </div>
-              </div>
+          {/* LIVE ON DUTY - Real-time Feature */}
+          <div className="card glass p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="card-title flex items-center gap-2">
+                <div className="pulse-dot"></div>
+                Live On-Duty
+              </h2>
+              <span className="text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full">
+                {stats.live_on_duty?.length || 0} Present
+              </span>
             </div>
-          </div>
-
-          {/* Calendar Widget */}
-          <div className="card p-6">
-            <h2 className="card-title mb-4">Calendar</h2>
-            <div className="calendar-widget">
-              {(() => {
-                const today = new Date();
-                const currentMonth = today.toLocaleString('default', { month: 'long' });
-                const currentYear = today.getFullYear();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
-                const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-
-                return (
-                  <>
-                    <div className="calendar-header">
-                      <span className="text-sm font-bold text-slate-900">{currentMonth} {currentYear}</span>
+            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+              {stats.live_on_duty?.length > 0 ? (
+                stats.live_on_duty.map((emp, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-3 glass-mini rounded-xl">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-black text-sm">
+                      {emp.name.split(' ').map(n => n[0]).join('')}
                     </div>
-                    <div className="calendar-days-header">
-                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="calendar-day-name">{day}</div>
-                      ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{emp.name}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase letter-spacing-1">Checked in @ {new Date(emp.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <div className="calendar-grid">
-                      {[...Array(firstDay)].map((_, i) => (
-                        <div key={`empty-${i}`} className="calendar-day empty"></div>
-                      ))}
-                      {[...Array(daysInMonth)].map((_, i) => {
-                        const day = i + 1;
-                        const isToday = day === today.getDate();
-                        return (
-                          <div key={day} className={`calendar-day ${isToday ? 'today' : ''}`}>
-                            {day}
-                          </div>
-                        );
-                      })}
+                    <div className="loc-tag flex items-center gap-1 text-slate-400">
+                      <Zap size={10} />
+                      <span className="text-[10px] font-black">ACTIVE</span>
                     </div>
-                  </>
-                );
-              })()}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-10 text-slate-400">
+                  <Clock size={32} className="mx-auto mb-3 opacity-20" />
+                  <p className="text-sm font-medium">Everyone is currently off-duty.</p>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Upcoming Events */}
-          <div className="card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="card-title">Events</h2>
-              <button className="p-1 hover:bg-slate-100 rounded-full text-slate-400">
-                <MoreHorizontal size={20} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
-                <div className="w-12 h-12 bg-primary-50 rounded-xl flex flex-col items-center justify-center border border-primary-100 group-hover:border-primary-200">
-                  <span className="text-xs font-bold text-primary-600 uppercase">Dec</span>
-                  <span className="text-lg font-black text-slate-900 leading-none">24</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">Annual Brunch</h4>
-                  <p className="text-xs text-slate-500 mt-1">11:30 AM • Hall A</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex flex-col items-center justify-center border border-purple-100 group-hover:border-purple-200">
-                  <span className="text-xs font-bold text-purple-600 uppercase">Dec</span>
-                  <span className="text-lg font-black text-slate-900 leading-none">28</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">Strategy Meet</h4>
-                  <p className="text-xs text-slate-500 mt-1">2:00 PM • Virtual</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Announcements */}
-          <div className="card p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="card-title">Announcements</h2>
-              <button className="text-xs font-semibold text-primary-600 hover:text-primary-700">View All</button>
-            </div>
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
-                    <FileText size={16} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-900 mb-1">New Policy Update</h4>
-                    <p className="text-xs text-slate-600 mb-2">Updated remote work policy is now available. Please review the changes.</p>
-                    <span className="text-xs text-slate-400">2 days ago</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center shrink-0">
-                    <Calendar size={16} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-900 mb-1">Holiday Schedule</h4>
-                    <p className="text-xs text-slate-600 mb-2">Year-end holiday schedule has been published. Check your calendar.</p>
-                    <span className="text-xs text-slate-400">5 days ago</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-purple-50 border-l-4 border-purple-500 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center shrink-0">
-                    <Users size={16} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-900 mb-1">Team Building Event</h4>
-                    <p className="text-xs text-slate-600 mb-2">Join us for the annual team building event next month!</p>
-                    <span className="text-xs text-slate-400">1 week ago</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -703,7 +500,8 @@ export default function Dashboard() {
 
       <style>{`
         .dashboard-container {
-            max-width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         .dashboard-header {
@@ -714,65 +512,81 @@ export default function Dashboard() {
         }
 
         .page-title {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--slate-900);
-            letter-spacing: -0.03em;
-            line-height: 1.1;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: -0.04em;
+            line-height: 1;
         }
 
         .page-subtitle {
-            margin-top: 8px;
-            color: var(--slate-500);
-            font-size: 1.05rem;
+            margin-top: 10px;
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 500;
         }
+
+        /* Dashboard Grid System */
+        .dashboard-main-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 24px;
+        }
+
+        .dash-left-column { display: flex; flex-direction: column; gap: 24px; }
+        .dash-right-column { display: flex; flex-direction: column; gap: 24px; }
 
         /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 24px;
-            margin-bottom: 32px;
+        }
+
+        /* Glass Cards */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            border-radius: 28px;
+            overflow: hidden;
+        }
+
+        .glass-mini {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 18px;
         }
 
         .stat-card {
-            padding: 24px;
+            padding: 26px;
+            height: 100%;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+            border-color: rgba(99, 102, 241, 0.3);
         }
 
         .icon-wrapper {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
-        .bg-blue-50 { background: #eff6ff; }
-        .text-blue-600 { color: #2563eb; }
-        
-        .bg-purple-50 { background: #faf5ff; }
-        .text-purple-600 { color: #9333ea; }
-        
-        .bg-orange-50 { background: #fff7ed; }
-        .text-orange-600 { color: #ea580c; }
-        
-        .bg-green-50 { background: #f0fdf4; }
-        .text-green-600 { color: #16a34a; }
 
         .trend-badge {
             display: flex;
             align-items: center;
             gap: 4px;
             font-size: 0.75rem;
-            font-weight: 700;
-            padding: 6px 10px;
+            font-weight: 800;
+            padding: 6px 12px;
             border-radius: 100px;
         }
 
@@ -780,184 +594,89 @@ export default function Dashboard() {
         .trend-down { background: #fee2e2; color: #dc2626; }
 
         .stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--slate-900);
+            font-size: 2.4rem;
+            font-weight: 900;
+            color: #0f172a;
             letter-spacing: -0.02em;
-            line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .stat-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--slate-500);
-        }
-
-        /* Content Grid */
-        .content-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--slate-900);
-        }
-
-        .mini-select {
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--slate-200);
             font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--slate-600);
-            background: white;
-            cursor: pointer;
-            outline: none;
-        }
-
-        .attendance-metric {
-            text-align: center;
-            padding: 16px;
-            background: var(--slate-50);
-            border-radius: 16px;
-            border: 1px solid var(--slate-100);
-        }
-
-        .metric-value {
-            display: block;
-            font-size: 1.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-
-        .metric-label {
-            font-size: 0.75rem;
             font-weight: 700;
+            color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
 
-        /* Quick Actions */
+        /* Hub Items */
+        .hub-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .hub-item:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        /* Activity Dots */
+        .activity-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+        }
+        .activity-dot.blue-500 { background: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+        .activity-dot.indigo-500 { background: #6366f1; box-shadow: 0 0 12px rgba(99, 102, 241, 0.5); }
+
+        /* Quick Action */
         .quick-action-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 16px;
-            background: var(--slate-50);
-            border: 1px solid var(--slate-200);
-            border-radius: 16px;
-            transition: all 0.2s;
-            height: 110px;
+            gap: 12px;
+            padding: 20px;
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .quick-action-btn:hover {
-            background: white;
-            border-color: var(--primary-400);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transform: translateY(-8px);
+            background: rgba(255,255,255,0.9);
+            border-color: #6366f1;
         }
 
-        .action-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--slate-700);
+        /* Live Pulse */
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background: #2dd4bf;
+            border-radius: 50%;
+            position: relative;
         }
 
-        .quick-action-btn span {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--slate-700);
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: #2dd4bf;
+            animation: pulse 2s infinite;
+            opacity: 0.5;
         }
 
-        /* Calendar Widget */
-        .calendar-widget {
-            width: 100%;
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(3); opacity: 0; }
         }
 
-        .calendar-header {
-            text-align: center;
-            padding: 12px 0;
-            margin-bottom: 12px;
-            border-bottom: 1px solid var(--slate-100);
-        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        .calendar-days-header {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 8px;
-        }
-
-        .calendar-day-name {
-            text-align: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--slate-500);
-            text-transform: uppercase;
-            padding: 4px 0;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-        }
-
-        .calendar-day {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--slate-700);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .calendar-day:not(.empty):hover {
-            background-color: var(--slate-100);
-            transform: scale(1.05);
-        }
-
-        .calendar-day.today {
-            background: var(--primary-500);
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .calendar-day.empty {
-            cursor: default;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        .bg-blue-50 { background: #eff6ff; } .text-blue-600 { color: #2563eb; }
+        .bg-purple-50 { background: #faf5ff; } .text-purple-600 { color: #9333ea; }
+        .bg-orange-50 { background: #fff7ed; } .text-orange-600 { color: #ea580c; }
+        .bg-green-50 { background: #f0fdf4; } .text-green-600 { color: #16a34a; }
       `}</style>
     </div >
   );

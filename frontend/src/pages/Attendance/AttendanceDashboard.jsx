@@ -114,6 +114,7 @@ export default function AttendanceDashboard() {
                     <AttendanceCheckIn
                         employeeId={user?.id || user?._id || employeeId}
                         employeeName={user?.name}
+                        variant="standard"
                     />
                 </div>
             )}

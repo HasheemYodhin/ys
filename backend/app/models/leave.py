@@ -32,6 +32,9 @@ class LeaveRequestResponse(LeaveRequestBase):
     id: str = Field(alias="_id")
     user_id: str
     employee_name: str
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    profile_photo: Optional[str] = None
     status: LeaveStatus
     applied_on: str
     comment: Optional[str] = None

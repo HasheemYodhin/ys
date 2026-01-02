@@ -15,6 +15,7 @@ import OrganizationDashboard from './pages/Organization/OrganizationDashboard';
 import LeaveManagement from './pages/LeaveManagement';
 import ExpenseManagement from './pages/ExpenseManagement';
 import DocumentsPage from './pages/DocumentsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 import LandingPage from './pages/LandingPage';
 import Settings from './pages/Settings';
@@ -65,6 +66,7 @@ function AppRoutes() {
               <Route path="/organization" element={<OrganizationDashboard />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               {/* Fallback to Dashboard */}
               <Route path="*" element={<Dashboard />} />
             </Routes>
