@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 
 export default function EditEmployeeModal({ employee, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -48,7 +49,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }) {
         payload.salary = parseFloat(payload.salary) || 0;
 
         try {
-            const response = await fetch(`/api/employees/${employee._id}`, {
+            const response = await fetch(`${API_BASE_URL}/employees/${employee._id}`, {
                 // ... fetch options
                 method: 'PUT',
                 headers: {

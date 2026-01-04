@@ -1,6 +1,6 @@
 # YS HR Management System
 
-This project is a premium HR Management System consisting of a Python FastAPI backend and a Node.js/React frontend.
+This project is a premium HR Management System consisting of a Python FastAPI backend and a Node.js/React frontend with **real-time chat capabilities**.
 
 ## 📂 Project Structure
 
@@ -9,6 +9,18 @@ This project is a premium HR Management System consisting of a Python FastAPI ba
 - **`/admin`**: Admin panel implementation.
 - **`/data`**: MongoDB data storage (created locally).
 - **root scripts**: Utility scripts for database management and debugging.
+
+## ✨ Features
+
+- 👥 Employee Management
+- 💰 Payroll Processing
+- 📅 Attendance Tracking
+- 🏢 Organization Management
+- 📊 Reports & Analytics
+- 📝 Leave Management
+- 💳 Expense Claims
+- 📄 Document Management
+- 💬 **Real-Time Chat** (Teams-like messaging)
 
 ## Prerequisites
 
@@ -38,9 +50,13 @@ cd backend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+# IMPORTANT: Use socket_app for real-time chat support
+uvicorn app.main:socket_app --reload
 ```
 The Backend API will run at `http://localhost:8000` (Docs: `http://localhost:8000/docs`).
+
+> **Note:** Use `socket_app` instead of `app` to enable WebSocket support for real-time chat!
 
 ### 3. Start the Frontend (Employee Portal)
 Open a **new terminal**:
@@ -61,6 +77,16 @@ npm install
 npm run dev
 ```
 
+## 💬 Using the Chat Feature
+
+1. Login to the application
+2. Click **"Chat"** in the sidebar
+3. Click the **"+"** button to start a new conversation
+4. Select a user from the list
+5. Start messaging in real-time!
+
+For detailed chat documentation, see [CHAT_FEATURE.md](CHAT_FEATURE.md) and [CHAT_IMPLEMENTATION_SUMMARY.md](CHAT_IMPLEMENTATION_SUMMARY.md).
+
 ## 🛠 Utility Scripts
 
 The root directory contains several Python scripts to help managing the application:
@@ -76,3 +102,6 @@ The root directory contains several Python scripts to help managing the applicat
 - **"[WinError 10061] No connection could be made..."**: MongoDB is not running. Run Step 1.
 - **Frontend Blank Screen**: Check the browser console (F12) for errors.
 - **Login Issues**: Use `debug_users.py` to check registered users. If you need an admin/employer account, use `promote_user.py` to upgrade an existing user.
+- **Chat Not Working**: Ensure you're running `uvicorn app.main:socket_app --reload` (not just `app`).
+- **WebSocket Connection Failed**: Check that port 8000 is not blocked and CORS is properly configured.
+

@@ -39,6 +39,9 @@ class UserBase(BaseModel):
     password_reset_requested: bool = False
     is_active: bool = True
     is_superuser: bool = False
+    is_online: bool = False
+    current_status: str = "offline"  # online, offline, in-call, idle
+    last_seen: Optional[str] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None

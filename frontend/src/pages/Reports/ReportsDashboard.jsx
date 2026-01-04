@@ -4,6 +4,7 @@ import {
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { Users, DollarSign, TrendingUp } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 
 export default function ReportsDashboard() {
     // Analytical State
@@ -21,7 +22,7 @@ export default function ReportsDashboard() {
     const fetchAnalytics = async () => {
         try {
             // 1. Employee Distribution by Department (Using new aggregated endpoint)
-            const reportRes = await fetch('/api/reports/summary');
+            const reportRes = await fetch(`${API_BASE_URL}/reports/summary`);
             if (reportRes.ok) {
                 const reportData = await reportRes.json();
 
@@ -35,7 +36,7 @@ export default function ReportsDashboard() {
             }
 
             // 2. Payroll Trend (Corrected URL to use proxy)
-            const payRes = await fetch('/api/payroll/');
+            const payRes = await fetch(`${API_BASE_URL}/payroll/`);
             if (payRes.ok) {
                 const payrolls = await payRes.json();
                 // Aggregate by Month

@@ -1,0 +1,14 @@
+{
+  "appId": "com.yschats.app",
+  "appName": "YS Chats",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

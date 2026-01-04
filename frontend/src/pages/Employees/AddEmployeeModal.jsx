@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 
 export default function AddEmployeeModal({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }) {
         if (!payload.relieving_date) delete payload.relieving_date;
 
         try {
-            const response = await fetch('/api/employees/', {
+            const response = await fetch(`${API_BASE_URL}/employees/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

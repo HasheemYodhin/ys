@@ -1,8 +1,9 @@
 import Sidebar from './Sidebar';
-import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings, ChevronRight } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings, ChevronRight, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 const Header = () => {
   const { user, logout, notifications } = useAuth();
@@ -17,10 +18,12 @@ const Header = () => {
 
   return (
     <header className="header">
-      <div className="header-search">
-        <Search size={18} className="search-icon" />
-        <input type="text" placeholder="Search employees, tasks..." className="search-input" />
-      </div>
+      {!Capacitor.isNativePlatform() && (
+        <div className="header-search">
+          <Search size={18} className="search-icon" />
+          <input type="text" placeholder="Search employees, tasks..." className="search-input" />
+        </div>
+      )}
 
       <div className="header-actions">
         <div className="notification-container">
@@ -467,10 +470,11 @@ export default function Layout({ children }) {
 
         .main-content {
           flex: 1;
-          margin-left: 270px; /* Aligned with Sidebar width */
+          margin-left: 270px;
           display: flex;
           flex-direction: column;
-          min-width: 0; /* Prevent flex overflow */
+          min-width: 0;
+          transition: margin-left 0.3s ease;
         }
 
         .page-content {
@@ -479,6 +483,27 @@ export default function Layout({ children }) {
           max-width: 1600px;
           margin: 0 auto;
           width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+          .main-content {
+            margin-left: 0;
+          }
+          .header {
+            padding: 0 20px;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .page-content {
+            padding: 20px;
+          }
+          .header-search {
+            display: none;
+          }
+          .user-info {
+            display: none;
+          }
         }
       `}</style>
     </div>

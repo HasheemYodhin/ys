@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,8 @@ import {
   BarChart3,
   CalendarDays,
   Receipt,
-  User
+  User,
+  MessageCircle
 } from 'lucide-react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +23,7 @@ import { useState, useEffect } from 'react';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['Employer', 'Employee'] },
   { label: 'My Profile', icon: User, path: '/profile', roles: ['Employee'] },
+  { label: 'Chat', icon: MessageCircle, path: '/chat', roles: ['Employer', 'Employee'] },
   { label: 'Attendance Log', icon: CalendarClock, path: '/attendance', roles: ['Employer', 'Employee'] },
   { label: 'Employees', icon: Users, path: '/employees', roles: ['Employer'] },
   { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['Employer', 'Employee'] },
@@ -31,6 +34,8 @@ const NAV_ITEMS = [
   { label: 'Expense Claims', icon: Receipt, path: '/expenses', roles: ['Employer', 'Employee'] },
   { label: 'Documents', icon: FileBox, path: '/documents', roles: ['Employer', 'Employee'] },
 ];
+
+import { API_BASE_URL } from '../../config';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -52,7 +57,11 @@ export default function Sidebar() {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:8000/dashboard/stats');
+        const res = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('ys_token')}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setStats({
@@ -72,10 +81,17 @@ export default function Sidebar() {
     return () => clearInterval(interval);
   }, [user]);
 
+
+
   // Filter items based on user role
-  const filteredItems = NAV_ITEMS.filter(item =>
-    !user?.role || item.roles.includes(user.role)
-  );
+  const filteredItems = NAV_ITEMS.filter(item => {
+    // Mobile App Check: Only show Chat
+    if (Capacitor.isNativePlatform()) {
+      return item.path === '/chat';
+    }
+
+    return !user?.role || item.roles.includes(user.role);
+  });
 
   const getBadgeCount = (path) => {
     if (user?.role !== 'Employer') return null;
@@ -122,12 +138,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="sidebar-footer">
-        <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Settings size={20} />
-          <span>Settings</span>
-        </NavLink>
-      </div>
+      {!Capacitor.isNativePlatform() && (
+        <div className="sidebar-footer">
+          <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Settings size={20} />
+            <span>Settings</span>
+          </NavLink>
+        </div>
+      )}
 
       <style>{`
         .sidebar {
@@ -141,7 +159,16 @@ export default function Sidebar() {
           left: 0;
           top: 0;
           z-index: 50;
-          transition: width 0.3s ease;
+          transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 1024px) {
+          .sidebar {
+            transform: translateX(-100%);
+          }
+          .sidebar.open {
+            transform: translateX(0);
+          }
         }
 
         .sidebar-header {

@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import AddEmployeeModal from './Employees/AddEmployeeModal';
 
 import AttendanceCheckIn from '../components/AttendanceCheckIn';
+import { API_BASE_URL } from '../config';
 
 const StatCard = ({ title, value, change, trend, icon: Icon, colorClass }) => (
   <div className="card stat-card glass animate-slide-up">
@@ -97,7 +98,7 @@ export default function Dashboard() {
       if (filters.status !== 'all') params.append('status', filters.status);
 
       const queryString = params.toString();
-      const response = await fetch(`/api/dashboard/stats${queryString ? '?' + queryString : ''}`);
+      const response = await fetch(`${API_BASE_URL}/dashboard/stats${queryString ? '?' + queryString : ''}`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);

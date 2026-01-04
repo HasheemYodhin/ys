@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const AuthContext = createContext();
 
@@ -7,9 +8,11 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
 
+    const getUrl = (path) => API_BASE_URL ? `${API_BASE_URL}${path}` : `/api${path}`;
+
     const fetchUser = async (token) => {
         try {
-            const response = await fetch('/api/auth/users/me', {
+            const response = await fetch(getUrl('/auth/users/me'), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -36,7 +39,7 @@ export const AuthProvider = ({ children }) => {
         if (!token || user?.role !== 'Employer') return;
 
         try {
-            const response = await fetch('/api/auth/notifications', {
+            const response = await fetch(getUrl('/auth/notifications'), {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -50,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = async (profileData) => {
         const token = sessionStorage.getItem('ys_token');
-        const response = await fetch('/api/auth/profile', {
+        const response = await fetch(getUrl('/auth/profile'), {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -90,17 +93,38 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     const login = async (email, password) => {
-        const formData = new URLSearchParams();
-        formData.append('username', email);
-        formData.append('password', password);
+        const loginUrl = getUrl('/auth/token');
+        const body = `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
 
-        const response = await fetch('/api/auth/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formData,
-        });
+        let response;
+        if (Capacitor.isNativePlatform()) {
+            const { CapacitorHttp } = await import('@capacitor/core');
+            alert(`Native Request: ${loginUrl}`);
+            response = await CapacitorHttp.post({
+                url: loginUrl,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                data: body,
+            });
+
+            // Standardize CapacitorHttp response to match fetch
+            if (response.status >= 200 && response.status < 300) {
+                response.ok = true;
+                response.json = async () => response.data;
+            } else {
+                response.ok = false;
+                response.json = async () => response.data;
+            }
+        } else {
+            response = await fetch(loginUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: body,
+            });
+        }
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -117,7 +141,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const signup = async (userData) => {
-        const response = await fetch('/api/auth/signup', {
+        const response = await fetch(getUrl('/auth/signup'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -140,7 +164,7 @@ export const AuthProvider = ({ children }) => {
 
     const requestPasswordReset = async () => {
         const token = sessionStorage.getItem('ys_token');
-        const response = await fetch('/api/auth/request-password-reset', {
+        const response = await fetch(getUrl('/auth/request-password-reset'), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -152,7 +176,7 @@ export const AuthProvider = ({ children }) => {
 
     const toggle2FA = async () => {
         const token = sessionStorage.getItem('ys_token');
-        const response = await fetch('/api/auth/toggle-2fa', {
+        const response = await fetch(getUrl('/auth/toggle-2fa'), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -164,7 +188,7 @@ export const AuthProvider = ({ children }) => {
 
     const resolveNotification = async (userId) => {
         const token = sessionStorage.getItem('ys_token');
-        const response = await fetch(`/api/auth/notifications/${userId}/resolve`, {
+        const response = await fetch(getUrl(`/auth/notifications/${userId}/resolve`), {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+import { Capacitor } from '@capacitor/core';
+
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -19,9 +21,14 @@ export default function Login() {
     setLoading(true);
     try {
       await login(formData.email, formData.password);
-      navigate('/dashboard');
+      if (Capacitor.isNativePlatform()) {
+        navigate('/chat');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(err.message || 'Invalid credentials. Please ensure the backend is running.');
+      setError(`Login Error: ${err.message}. Please check if server is reachable at your computer IP.`);
+      console.error("Login Error:", err);
     } finally {
       setLoading(false);
     }

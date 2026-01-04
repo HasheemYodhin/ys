@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Filter, MoreHorizontal, User, Mail, Briefcase, Calendar, Trash2, Edit2 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
+import { API_BASE_URL } from '../../config';
 
 export default function EmployeeList() {
   const [employees, setEmployees] = useState([]);
@@ -15,7 +16,7 @@ export default function EmployeeList() {
 
   const fetchEmployees = async () => {
     try {
-      const empRes = await fetch('/api/employees/');
+      const empRes = await fetch(`${API_BASE_URL}/employees/`);
       if (empRes.ok) {
         const data = await empRes.json();
         setEmployees(data);
@@ -27,7 +28,7 @@ export default function EmployeeList() {
     }
 
     try {
-      const attRes = await fetch('/api/attendance/today');
+      const attRes = await fetch(`${API_BASE_URL}/attendance/today`);
       if (attRes.ok) {
         const attData = await attRes.json();
         const attMap = {};
@@ -65,7 +66,7 @@ export default function EmployeeList() {
     }
 
     try {
-      const response = await fetch(`/api/employees/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/employees/${id}`, {
         method: 'DELETE',
       });
 

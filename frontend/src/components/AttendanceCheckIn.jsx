@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Clock, LogIn, LogOut, Loader, Calendar } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 export default function AttendanceCheckIn({ employeeId, employeeName, variant = 'standard' }) {
     const [status, setStatus] = useState('checked_out');
@@ -45,7 +46,7 @@ export default function AttendanceCheckIn({ employeeId, employeeName, variant = 
 
     const fetchEmployeeId = async () => {
         try {
-            const response = await fetch('http://localhost:8000/employees/');
+            const response = await fetch(`${API_BASE_URL}/employees/`);
             if (response.ok) {
                 const employees = await response.json();
                 // Find employee by name
@@ -67,7 +68,7 @@ export default function AttendanceCheckIn({ employeeId, employeeName, variant = 
         if (!actualEmployeeId) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/attendance/today/${actualEmployeeId}`);
+            const response = await fetch(`${API_BASE_URL}/attendance/today/${actualEmployeeId}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data) {
@@ -93,7 +94,7 @@ export default function AttendanceCheckIn({ employeeId, employeeName, variant = 
 
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/attendance/checkin', {
+            const response = await fetch(`${API_BASE_URL}/attendance/checkin`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -132,7 +133,7 @@ export default function AttendanceCheckIn({ employeeId, employeeName, variant = 
         try {
             console.log('Attempting checkout for employee:', actualEmployeeId);
 
-            const response = await fetch('http://localhost:8000/attendance/checkout', {
+            const response = await fetch(`${API_BASE_URL}/attendance/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
