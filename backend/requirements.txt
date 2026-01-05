@@ -9,4 +9,5 @@ bcrypt==3.2.2
 python-multipart
 python-socketio
 aiofiles
-google-generativeai
+google-genai
+python-dotenv

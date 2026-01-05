@@ -23,7 +23,7 @@ import { useState, useEffect } from 'react';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['Employer', 'Employee'] },
   { label: 'My Profile', icon: User, path: '/profile', roles: ['Employee'] },
-  { label: 'Chat', icon: MessageCircle, path: '/chat', roles: ['Employer', 'Employee'] },
+  { label: 'Chats', icon: MessageCircle, path: '/chat', roles: ['Employer', 'Employee'] },
   { label: 'Attendance Log', icon: CalendarClock, path: '/attendance', roles: ['Employer', 'Employee'] },
   { label: 'Employees', icon: Users, path: '/employees', roles: ['Employer'] },
   { label: 'Payroll', icon: Banknote, path: '/payroll', roles: ['Employer', 'Employee'] },

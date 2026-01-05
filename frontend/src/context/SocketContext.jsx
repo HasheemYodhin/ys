@@ -15,7 +15,20 @@ export const SocketProvider = ({ children }) => {
     const { user } = useAuth();
     const [socket, setSocket] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [callState, setCallState] = useState({
+        show: false,
+        type: null,
+        isIncoming: false,
+        otherUser: null,
+        status: 'idle', // idle, calling, ringing, active, ended
+        offer: null
+    });
     const socketRef = useRef(null);
+    const ringtoneRef = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2359/2359-preview.mp3'));
+
+    useEffect(() => {
+        ringtoneRef.current.loop = true;
+    }, []);
 
     // Initialize Notification Permissions on Mount
     useEffect(() => {
@@ -105,13 +118,103 @@ export const SocketProvider = ({ children }) => {
             }
         });
 
+        newSocket.on('status_update', (data) => {
+            setOnlineUsers(prev => {
+                const exists = prev.find(u => u.user_id === data.user_id);
+                if (exists) {
+                    return prev.map(u => u.user_id === data.user_id ? data : u);
+                }
+                return [...prev, data];
+            });
+        });
+
+        newSocket.on('call_incoming', (data) => {
+            console.log('Incoming call received in Global Socket:', data);
+            // Play ringtone globally
+            ringtoneRef.current.play().catch(e => console.error("Ringtone playback failed:", e));
+
+            setCallState({
+                show: true,
+                type: data.type,
+                isIncoming: true,
+                otherUser: { id: data.caller_id, name: data.caller_name },
+                status: 'ringing',
+                offer: data.offer
+            });
+        });
+
+        newSocket.on('call_ended', () => {
+            console.log('Call ended in Global Socket');
+            ringtoneRef.current.pause();
+            ringtoneRef.current.currentTime = 0;
+
+            setCallState(prev => ({ ...prev, show: false, status: 'ended' }));
+            setTimeout(() => {
+                setCallState({ show: false, type: null, isIncoming: false, otherUser: null, status: 'idle', offer: null });
+            }, 2000);
+        });
+
         return () => {
             newSocket.disconnect();
         };
     }, [user]);
 
+    // Throttled Presence Logic (Global)
+    useEffect(() => {
+        if (!socket || !user) return;
+
+        let idleTimer;
+        let lastStatus = 'online';
+        let lastEmitTime = 0;
+
+        const updateStatus = (status) => {
+            const now = Date.now();
+            // Only emit if status changed OR if it's been more than 60s
+            if (status !== lastStatus || (now - lastEmitTime > 60000)) {
+                socket.emit('update_status', { status });
+                lastStatus = status;
+                lastEmitTime = now;
+            }
+        };
+
+        const resetIdle = () => {
+            updateStatus('online');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                updateStatus('idle');
+            }, 120000); // 2 minutes
+        };
+
+        // Initial set
+        updateStatus('online');
+
+        window.addEventListener('mousemove', resetIdle);
+        window.addEventListener('keydown', resetIdle);
+        window.addEventListener('click', resetIdle);
+
+        return () => {
+            window.removeEventListener('mousemove', resetIdle);
+            window.removeEventListener('keydown', resetIdle);
+            window.removeEventListener('click', resetIdle);
+            clearTimeout(idleTimer);
+        };
+    }, [socket, user]);
+
+    const stopRingtone = () => {
+        ringtoneRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
+    };
+
+    const endCall = (targetId) => {
+        if (socketRef.current) {
+            socketRef.current.emit('end_call', { target_id: targetId });
+        }
+        stopRingtone();
+        setCallState({ show: false, type: null, isIncoming: false, otherUser: null, status: 'idle', offer: null });
+    };
+
     return (
-        <SocketContext.Provider value={{ socket, onlineUsers }}>
+        <SocketContext.Provider value={{ socket, onlineUsers, callState, setCallState, endCall, stopRingtone }}>
             {children}
         </SocketContext.Provider>
     );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { MessageCircle, Send, Search, Plus, MoreVertical, Smile, Paperclip, X, Users, File, Image, Camera, Mic, Video, FileText, StickyNote, Calendar, Phone, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, Search, Plus, MoreVertical, Smile, Paperclip, X, Users, File, Image, Camera, Mic, Video, FileText, StickyNote, Calendar, Phone, Sparkles, Download, Mail, Briefcase } from 'lucide-react';
 import io from 'socket.io-client';
 import EmojiPicker from 'emoji-picker-react';
 import { API_BASE_URL } from '../config';
@@ -16,34 +16,24 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
-  const { socket: globalSocket } = useSocket();
-  const [socket, setSocket] = useState(null);
+  const [selectedGroupUsers, setSelectedGroupUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [selectedGroupUsers, setSelectedGroupUsers] = useState([]);
-
-  // Calling State
-  const [callState, setCallState] = useState({
-    show: false,
-    type: null,
-    isIncoming: false,
-    otherUser: null,
-    status: 'idle', // idle, calling, ringing, active, ended
-    offer: null
-  });
+  const { socket, callState, setCallState, endCall: globalEndCall, stopRingtone } = useSocket();
+  const callingAudioRef = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [callDuration, setCallDuration] = useState(0);
+  const callTimerRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const ringtoneRef = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2359/2359-preview.mp3'));
-  const callingAudioRef = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
+  const iceCandidateQueue = useRef([]);
 
   useEffect(() => {
-    ringtoneRef.current.loop = true;
     callingAudioRef.current.loop = true;
   }, []);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -52,6 +42,8 @@ export default function ChatPage() {
 
   // Modal States
   const [showGroupInfoModal, setShowGroupInfoModal] = useState(false);
+  const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showPollModal, setShowPollModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
@@ -74,7 +66,7 @@ export default function ChatPage() {
 
     if (type === 'document') {
       if (fileInputRef.current) {
-        fileInputRef.current.accept = "*";
+        fileInputRef.current.accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv";
         fileInputRef.current.click();
       }
     } else if (type === 'image') {
@@ -102,24 +94,30 @@ export default function ChatPage() {
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // Initialize Socket.IO connection
-  // Sync with Global Socket
-  useEffect(() => {
-    if (globalSocket) {
-      setSocket(globalSocket);
-    }
-  }, [globalSocket]);
 
   // Handle Socket Events (Moved connection logic to Context, just listeners here)
   useEffect(() => {
     if (!socket) return;
 
-    const handleConnect = () => console.log('ChatPage connected');
+    const handleConnect = () => {
+      console.log('ChatPage connected');
+      if (selectedConversation?._id) {
+        console.log('Re-joining conversation room on connect:', selectedConversation._id);
+        socket.emit('join_conversation', { conversation_id: selectedConversation._id });
+      }
+    };
 
     const handleNewMessage = (data) => {
-      if (data.sender_id === user?._id) return;
+      console.log('DEBUG: Received new_message socket event:', data);
+      if (data.sender_id === user?._id) {
+        console.log('Ignoring own message');
+        return;
+      }
       if (selectedConversation && data.conversation_id === selectedConversation._id) {
+        console.log('Updating messages list with new message');
         setMessages(prev => [...prev, data]);
+      } else {
+        console.log('Message not for current conversation. Current:', selectedConversation?._id, 'Msg Conv:', data.conversation_id);
       }
       fetchConversations();
     };
@@ -147,16 +145,8 @@ export default function ChatPage() {
       }));
     };
 
-    const handleCallIncoming = async (data) => {
-      ringtoneRef.current.play().catch(e => console.error("Audio play failed:", e));
-      setCallState({
-        show: true,
-        type: data.type,
-        isIncoming: true,
-        otherUser: { id: data.caller_id, name: data.caller_name },
-        status: 'ringing',
-        offer: data.offer
-      });
+    const handleCallIncoming = (data) => {
+      // Obsolete: Handled in SocketContext
     };
 
     const handleCallAnswered = async (data) => {
@@ -164,21 +154,38 @@ export default function ChatPage() {
       callingAudioRef.current.currentTime = 0;
       if (peerConnectionRef.current) {
         await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+
+        // Process queued candidates
+        while (iceCandidateQueue.current.length > 0) {
+          const candidate = iceCandidateQueue.current.shift();
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.warn("Failed to add queued candidate:", e);
+          }
+        }
+
         setCallState(prev => ({ ...prev, status: 'active' }));
       }
     };
 
     const handleIceCandidate = async (data) => {
-      if (peerConnectionRef.current) {
+      console.log("Received ICE candidate from signaling", data.candidate);
+      if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
         try {
           await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          console.log("Successfully added ICE candidate");
         } catch (e) {
           console.error("Error adding ice candidate", e);
         }
+      } else {
+        console.log("Queuing ICE candidate (PC not ready or remoteDescription not set)");
+        iceCandidateQueue.current.push(data.candidate);
       }
     };
 
     const handleCallEnded = () => {
+      console.log("Call ended by other user");
       handleEndCallCleanup();
     };
 
@@ -203,33 +210,6 @@ export default function ChatPage() {
     };
   }, [socket, selectedConversation, user?._id]);
 
-  // Idle Timer
-  useEffect(() => {
-    let idleTimer;
-    const resetIdle = () => {
-      if (!socket) return;
-      // If we were idle, set back to online (unless in a call, but tricky to check state here easily without ref, assuming user interaction means online)
-      // Ideally we check if callState.status === 'idle'
-      socket.emit('update_status', { status: 'online' });
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        socket.emit('update_status', { status: 'idle' });
-      }, 120000); // 2 mins
-    };
-
-    window.addEventListener('mousemove', resetIdle);
-    window.addEventListener('keydown', resetIdle);
-
-    idleTimer = setTimeout(() => {
-      if (socket) socket.emit('update_status', { status: 'idle' });
-    }, 120000);
-
-    return () => {
-      window.removeEventListener('mousemove', resetIdle);
-      window.removeEventListener('keydown', resetIdle);
-      clearTimeout(idleTimer);
-    };
-  }, [socket]);
 
   // Fetch conversations
   useEffect(() => {
@@ -253,15 +233,17 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
+      console.log("Attaching local stream to element", localVideoRef.current.tagName);
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream, callState.show]);
+  }, [localStream, callState.show, callState.status]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
+      console.log("Attaching remote stream to element", remoteVideoRef.current.tagName);
       remoteVideoRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream, callState.show]);
+  }, [remoteStream, callState.show, callState.status]);
 
   const fetchConversations = async () => {
     try {
@@ -379,21 +361,30 @@ export default function ChatPage() {
   };
 
   const handleEndCallCleanup = () => {
-    ringtoneRef.current.pause();
-    ringtoneRef.current.currentTime = 0;
     callingAudioRef.current.pause();
     callingAudioRef.current.currentTime = 0;
+    if (stopRingtone) stopRingtone();
 
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
       setLocalStream(null);
     }
     setRemoteStream(null);
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+    setCallDuration(0);
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    setCallState({ show: false, type: null, isIncoming: false, otherUser: null, status: 'idle', offer: null });
+    iceCandidateQueue.current = [];
+    if (globalEndCall && callState.otherUser) {
+      globalEndCall(callState.otherUser.id);
+    } else {
+      setCallState({ show: false, type: null, isIncoming: false, otherUser: null, status: 'idle', offer: null });
+    }
     if (socket) socket.emit('update_status', { status: 'online' });
   };
 
@@ -406,6 +397,12 @@ export default function ChatPage() {
 
     setCallState({ show: true, type, isIncoming: false, otherUser, status: 'calling' });
     callingAudioRef.current.play().catch(e => console.error("Audio play failed:", e));
+
+    if (callTimerRef.current) clearInterval(callTimerRef.current);
+    setCallDuration(0);
+    callTimerRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -422,6 +419,7 @@ export default function ChatPage() {
 
       pc.onicecandidate = (event) => {
         if (event.candidate && socket) {
+          console.log("Sending ICE candidate to signaling");
           socket.emit('ice_candidate', {
             target_id: otherUser.id,
             candidate: event.candidate
@@ -430,11 +428,15 @@ export default function ChatPage() {
       };
 
       pc.ontrack = (event) => {
+        console.log("Received remote track", event.streams[0]);
         setRemoteStream(event.streams[0]);
       };
 
+      peerConnectionRef.current = pc;
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      console.log("Local description set (offer)");
 
       socket.emit('call_user', {
         target_id: otherUser.id,
@@ -452,8 +454,7 @@ export default function ChatPage() {
   };
 
   const answerCall = async () => {
-    ringtoneRef.current.pause();
-    ringtoneRef.current.currentTime = 0;
+    if (stopRingtone) stopRingtone();
     if (socket) socket.emit('update_status', { status: 'in-call' });
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -465,11 +466,13 @@ export default function ChatPage() {
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
+      peerConnectionRef.current = pc;
 
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
       pc.onicecandidate = (event) => {
         if (event.candidate && socket) {
+          console.log("Sending ICE candidate to signaling (Answerer)");
           socket.emit('ice_candidate', {
             target_id: callState.otherUser.id,
             candidate: event.candidate
@@ -478,12 +481,27 @@ export default function ChatPage() {
       };
 
       pc.ontrack = (event) => {
+        console.log("Received remote track (Answerer)", event.streams[0]);
         setRemoteStream(event.streams[0]);
       };
 
       await pc.setRemoteDescription(new RTCSessionDescription(callState.offer));
+      console.log("Remote description set (offer)");
+
+      // Process queued candidates
+      while (iceCandidateQueue.current.length > 0) {
+        const candidate = iceCandidateQueue.current.shift();
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("Added queued ICE candidate");
+        } catch (e) {
+          console.warn("Failed to add queued candidate", e);
+        }
+      }
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      console.log("Local description set (answer)");
 
       socket.emit('answer_call', {
         target_id: callState.otherUser.id,
@@ -573,7 +591,10 @@ export default function ChatPage() {
                 <Phone size={48} />
               </div>
               <h2>Talking to {callState.otherUser?.name}</h2>
-              <div className="call-status">00:00</div>
+              <div className="call-status">
+                {Math.floor(callDuration / 60).toString().padStart(2, '0')}:
+                {(callDuration % 60).toString().padStart(2, '0')}
+              </div>
               <audio ref={remoteVideoRef} autoPlay />
               <audio ref={localVideoRef} autoPlay muted />
             </div>
@@ -1007,7 +1028,7 @@ export default function ChatPage() {
         <div className="sidebar-header">
           <h2 className="sidebar-title">
             <MessageCircle size={24} />
-            Chat
+            Chats
           </h2>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -1092,8 +1113,15 @@ export default function ChatPage() {
             <div className="chat-header">
               <div
                 className="chat-header-info"
-                onClick={() => selectedConversation.type === 'group' && setShowGroupInfoModal(true)}
-                style={{ cursor: selectedConversation.type === 'group' ? 'pointer' : 'default' }}
+                onClick={() => {
+                  if (selectedConversation.type === 'group') {
+                    setShowGroupInfoModal(true);
+                  } else {
+                    setSelectedUserInfo(selectedConversation.participants_data?.[0]);
+                    setShowUserInfoModal(true);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
               >
                 <div className="chat-avatar">
                   {selectedConversation.type === 'group' ? (
@@ -1206,10 +1234,28 @@ export default function ChatPage() {
                                 {att.type.startsWith('image/') ? (
                                   <img src={att.url} alt={att.name} className="attachment-image" />
                                 ) : (
-                                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="attachment-file">
-                                    <File size={20} />
-                                    <span>{att.name}</span>
-                                  </a>
+                                  <div className="message-file" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', minWidth: '200px' }}>
+                                    <div style={{ width: '40px', height: '40px', background: att.name?.endsWith('.pdf') ? '#ef4444' : att.name?.endsWith('.xls') || att.name?.endsWith('.xlsx') ? '#22c55e' : '#3b82f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                      <FileText size={24} />
+                                    </div>
+                                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                                      <div style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {att.name || 'Document'}
+                                      </div>
+                                      <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                                        {att.name?.split('.').pop().toUpperCase()} File
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={att.url}
+                                      download={att.name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+                                    >
+                                      <Download size={18} />
+                                    </a>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -1555,6 +1601,78 @@ export default function ChatPage() {
 
       {/* Real-time Call Modal */}
       {renderCallModal()}
+
+      {/* User Info Modal */}
+      {showUserInfoModal && selectedUserInfo && (
+        <div className="modal-overlay" onClick={() => setShowUserInfoModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '350px', padding: '0', overflow: 'hidden', borderRadius: '16px' }}>
+            <div style={{ height: '100px', background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}></div>
+            <div style={{ padding: '0 24px 24px', marginTop: '-50px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'white', padding: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                {selectedUserInfo.profile_photo ? (
+                  <img src={selectedUserInfo.profile_photo} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#64748b' }}>
+                    {selectedUserInfo.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <h2 style={{ marginTop: '16px', fontSize: '1.5rem', color: '#1e293b', fontWeight: 'bold' }}>{selectedUserInfo.name}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: (selectedUserInfo.is_online || selectedUserInfo.current_status === 'online') ? '#22c55e' : '#64748b', fontSize: '0.9rem', marginBottom: '24px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: (selectedUserInfo.is_online || selectedUserInfo.current_status === 'online') ? '#22c55e' : '#cbd5e1' }}></div>
+                {(selectedUserInfo.is_online || selectedUserInfo.current_status === 'online') ? 'Online' : 'Offline'}
+              </div>
+
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {selectedUserInfo.email && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', color: '#6366f1' }}>
+                      <Mail size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Email</div>
+                      <div style={{ color: '#334155', fontWeight: '500' }}>{selectedUserInfo.email}</div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedUserInfo.role && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <div style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '8px', color: '#a855f7' }}>
+                      <Briefcase size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Role</div>
+                      <div style={{ color: '#334155', fontWeight: '500' }}>{selectedUserInfo.role}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowUserInfoModal(false)}
+                style={{
+                  marginTop: '24px',
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#e2e8f0'}
+                onMouseOut={(e) => e.target.style.background = '#f1f5f9'}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Chat Modal */}
       {showNewChatModal && (

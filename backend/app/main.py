@@ -210,6 +210,7 @@ async def call_user(sid, data):
     """Relay call offer to target user"""
     target_id = data.get('target_id')
     target_sid = online_users.get(target_id)
+    print(f"DEBUG: Call request from {sid} to {target_id}. Target SID found: {target_sid}")
     if target_sid:
         caller_id = sid_to_user.get(sid)
         await sio.emit('call_incoming', {
@@ -218,12 +219,17 @@ async def call_user(sid, data):
             'offer': data.get('offer'),
             'type': data.get('type')
         }, to=target_sid)
+    else:
+        print(f"DEBUG: Target {target_id} is not online.")
+        # Optional: emit error back to caller
+        await sio.emit('call_error', {'message': 'User is offline'}, to=sid)
 
 @sio.event
 async def answer_call(sid, data):
     """Relay call answer to original caller"""
     target_id = data.get('target_id')
     target_sid = online_users.get(target_id)
+    print(f"DEBUG: Answer from {sid} to {target_id}. Target SID: {target_sid}")
     if target_sid:
         await sio.emit('call_answered', {
             'answer': data.get('answer')
@@ -244,6 +250,7 @@ async def end_call(sid, data):
     """Notify other party that call ended"""
     target_id = data.get('target_id')
     target_sid = online_users.get(target_id)
+    print(f"DEBUG: End call from {sid} for {target_id}. Target SID: {target_sid}")
     if target_sid:
         await sio.emit('call_ended', to=target_sid)
 

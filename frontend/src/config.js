@@ -9,4 +9,6 @@ export const API_BASE_URL = Capacitor.isNativePlatform()
     ? `http://${LOCAL_IP}:${BACKEND_PORT}`
     : '/api';
 
-export const SOCKET_URL = `http://${LOCAL_IP}:${BACKEND_PORT}`;
+export const SOCKET_URL = Capacitor.isNativePlatform()
+    ? `http://${LOCAL_IP}:${BACKEND_PORT}`
+    : `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}`;

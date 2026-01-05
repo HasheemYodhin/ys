@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
-import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings, ChevronRight, Menu } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, ChevronDown, Settings, ChevronRight, Menu, Phone, Video, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
@@ -451,6 +452,18 @@ const Header = () => {
 
 export default function Layout({ children }) {
   const { user } = useAuth();
+  const { callState, endCall } = useSocket();
+  const navigate = useNavigate();
+
+  const handleAcceptCall = () => {
+    navigate('/chat');
+  };
+
+  const handleRejectCall = () => {
+    if (callState.otherUser) {
+      endCall(callState.otherUser.id);
+    }
+  };
   return (
     <div className="layout">
       <Sidebar />
@@ -460,6 +473,28 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
+
+      {callState.show && callState.isIncoming && callState.status === 'ringing' && !window.location.pathname.includes('/chat') && (
+        <div className="global-call-overlay glass">
+          <div className="call-info">
+            <div className="call-avatar">
+              {callState.otherUser?.name?.[0].toUpperCase()}
+            </div>
+            <div className="call-text">
+              <h4>{callState.otherUser?.name}</h4>
+              <p>Incoming {callState.type} call...</p>
+            </div>
+          </div>
+          <div className="call-actions">
+            <button className="call-btn-circle accept" onClick={handleAcceptCall}>
+              <Phone size={20} />
+            </button>
+            <button className="call-btn-circle reject" onClick={handleRejectCall}>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .layout {
@@ -505,6 +540,81 @@ export default function Layout({ children }) {
             display: none;
           }
         }
+
+        /* Global Call Overlay */
+        .global-call-overlay {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          width: 320px;
+          padding: 16px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          z-index: 9999;
+          animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+          border: 1px solid rgba(255,255,255,0.4);
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+
+        .call-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .call-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--grad-primary);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+        }
+
+        .call-text h4 {
+          margin: 0;
+          font-size: 0.95rem;
+          color: var(--slate-900);
+        }
+
+        .call-text p {
+          margin: 0;
+          font-size: 0.8rem;
+          color: var(--slate-500);
+        }
+
+        .call-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .call-btn-circle {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          cursor: pointer;
+          color: white;
+          transition: transform 0.2s;
+        }
+
+        .call-btn-circle:hover { transform: scale(1.1); }
+        .call-btn-circle.accept { background: #22c55e; }
+        .call-btn-circle.reject { background: #ef4444; }
       `}</style>
     </div>
   );
